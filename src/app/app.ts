@@ -4,51 +4,100 @@ import { Component } from '@angular/core';
 import { FFlowModule } from '@foblex/flow';
 import { NodeService } from './services/node.service';
 import { NodeEditorComponent } from './components/node-editor/node-editor.compenent';
+import { CommonModule } from '@angular/common';
+
+interface NodeCategory {
+  title: string;
+  nodes: NodeDefinition[];
+  collapsed?: boolean;
+}
+
+interface NodeDefinition {
+  type: string;
+  label: string;
+  description: string;
+  color: string;
+  hasInputs: boolean;
+  hasOutputs: boolean;
+}
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [NodeEditorComponent, FFlowModule],
+  imports: [NodeEditorComponent, FFlowModule, CommonModule],
   template: `
     <div class="app-container">
       <div class="sidebar">
-        <h3>Node Library</h3>
+        <div class="sidebar-header">
+          <h2>IoT Process Mining Suite</h2>
+          <p>Node-based data mapping tool</p>
+        </div>
+
         <div class="node-library">
-          <!-- Draggable library nodes -->
-          <div
-            class="library-node"
-            draggable="true"
-            (dragstart)="onDragStart($event, 'input')"
-            data-node-type="input"
-          >
-            <div class="node-preview input-node">
-              <span>Input Node</span>
-              <div class="output-port nord-blue"></div>
-            </div>
-          </div>
+          @for (category of nodeCategories; track category.title) {
+            <div class="category-section">
+              <div
+                class="category-header"
+                (click)="toggleCategory(category)"
+                [class.collapsed]="category.collapsed"
+              >
+                <span class="category-icon">{{ category.collapsed ? '▶' : '▼' }}</span>
+                <h3>{{ category.title }}</h3>
+              </div>
 
-          <div
-            class="library-node"
-            draggable="true"
-            (dragstart)="onDragStart($event, 'process')"
-            data-node-type="process"
-          >
-            <div class="node-preview process-node">
-              <div class="input-port nord-green"></div>
-              <span>Process Node</span>
-              <div class="output-port nord-purple"></div>
+              @if (!category.collapsed) {
+                <div class="category-content">
+                  @for (node of category.nodes; track node.type) {
+                    <div
+                      class="library-node"
+                      draggable="true"
+                      (dragstart)="onDragStart($event, node.type)"
+                      [attr.data-node-type]="node.type"
+                      [title]="node.description"
+                    >
+                      <div class="node-preview" [class]="'node-preview-' + node.color">
+                        @if (node.hasInputs) {
+                          <div class="input-port" [class]="node.color"></div>
+                        }
+                        <span class="node-label">{{ node.label }}</span>
+                        @if (node.hasOutputs) {
+                          <div class="output-port" [class]="node.color"></div>
+                        }
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
             </div>
-          </div>
+          }
+        </div>
 
-          <div
-            class="library-node"
-            draggable="true"
-            (dragstart)="onDragStart($event, 'output')"
-            data-node-type="output"
-          >
-            <div class="node-preview output-node">
-              <div class="input-port nord-red"></div>
-              <span>Output Node</span>
+        <div class="sidebar-footer">
+          <div class="port-legend">
+            <h4>Port Types</h4>
+            <div class="legend-item">
+              <div class="port nord-blue"></div>
+              <span>Raw Data</span>
+            </div>
+            <div class="legend-item">
+              <div class="port nord-green"></div>
+              <span>Events</span>
+            </div>
+            <div class="legend-item">
+              <div class="port nord-purple"></div>
+              <span>Objects</span>
+            </div>
+            <div class="legend-item">
+              <div class="port nord-red"></div>
+              <span>Observations</span>
+            </div>
+            <div class="legend-item">
+              <div class="port nord-orange"></div>
+              <span>Relationships</span>
+            </div>
+            <div class="legend-item">
+              <div class="port nord-yellow"></div>
+              <span>Attributes</span>
             </div>
           </div>
         </div>
@@ -61,7 +110,6 @@ import { NodeEditorComponent } from './components/node-editor/node-editor.compen
           (dragover)="onDragOver($event)"
         >
           <div class="grid-background"></div>
-          <!-- This now shows NodeEditorComponent, which in turn renders all nodes -->
           <app-node-editor></app-node-editor>
         </div>
       </div>
@@ -70,13 +118,255 @@ import { NodeEditorComponent } from './components/node-editor/node-editor.compen
   styleUrls: ['./app.scss']
 })
 export class AppComponent {
+
+  nodeCategories: NodeCategory[] = [
+    {
+      title: 'Data Input & Loading',
+      nodes: [
+        {
+          type: 'file-loader',
+          label: 'File Loader',
+          description: 'Load XES/XML event logs from files',
+          color: 'nord-blue',
+          hasInputs: false,
+          hasOutputs: true
+        },
+        {
+          type: 'data-source',
+          label: 'Data Source',
+          description: 'Manual data input or external connection',
+          color: 'nord-blue',
+          hasInputs: false,
+          hasOutputs: true
+        }
+      ]
+    },
+    {
+      title: 'Data Processing',
+      nodes: [
+        {
+          type: 'event-parser',
+          label: 'Event Parser',
+          description: 'Parse raw XML/XES events to structured data',
+          color: 'nord-green',
+          hasInputs: true,
+          hasOutputs: true
+        },
+        {
+          type: 'attribute-selector',
+          label: 'Attribute Selector',
+          description: 'Extract specific attributes from events',
+          color: 'nord-yellow',
+          hasInputs: true,
+          hasOutputs: true
+        },
+        {
+          type: 'stream-extractor',
+          label: 'Stream Extractor',
+          description: 'Extract sensor stream data from events',
+          color: 'nord-red',
+          hasInputs: true,
+          hasOutputs: true
+        },
+        {
+          type: 'data-mapper',
+          label: 'Data Mapper',
+          description: 'Apply mapping transformations to data',
+          color: 'nord-yellow',
+          hasInputs: true,
+          hasOutputs: true
+        },
+        {
+          type: 'data-filter',
+          label: 'Data Filter',
+          description: 'Filter data based on conditions',
+          color: 'nord-yellow',
+          hasInputs: true,
+          hasOutputs: true
+        }
+      ]
+    },
+    {
+      title: 'Core Model Creation',
+      nodes: [
+        {
+          type: 'object-creator',
+          label: 'Object Creator',
+          description: 'Create CORE model objects (resources, cases, etc.)',
+          color: 'nord-purple',
+          hasInputs: true,
+          hasOutputs: true
+        },
+        {
+          type: 'process-event-creator',
+          label: 'Process Event Creator',
+          description: 'Create process events for CORE model',
+          color: 'nord-green',
+          hasInputs: true,
+          hasOutputs: true
+        },
+        {
+          type: 'observation-creator',
+          label: 'Observation Creator',
+          description: 'Create sensor observations',
+          color: 'nord-red',
+          hasInputs: true,
+          hasOutputs: true
+        }
+      ]
+    },
+    {
+      title: 'Relationships',
+      nodes: [
+        {
+          type: 'event-object-relation',
+          label: 'Event-Object Relation',
+          description: 'Create relationships between events and objects',
+          color: 'nord-orange',
+          hasInputs: true,
+          hasOutputs: true
+        },
+        {
+          type: 'event-event-relation',
+          label: 'Event-Event Relation',
+          description: 'Create relationships between events',
+          color: 'nord-orange',
+          hasInputs: true,
+          hasOutputs: true
+        }
+      ]
+    },
+    {
+      title: 'Collections',
+      nodes: [
+        {
+          type: 'objects-collection',
+          label: 'Objects Collection',
+          description: 'Collect and manage object instances',
+          color: 'nord-purple',
+          hasInputs: true,
+          hasOutputs: true
+        },
+        {
+          type: 'events-collection',
+          label: 'Events Collection',
+          description: 'Collect and manage process events',
+          color: 'nord-green',
+          hasInputs: true,
+          hasOutputs: true
+        },
+        {
+          type: 'observations-collection',
+          label: 'Observations Collection',
+          description: 'Collect and manage sensor observations',
+          color: 'nord-red',
+          hasInputs: true,
+          hasOutputs: true
+        },
+        {
+          type: 'eo-relations-collection',
+          label: 'E-O Relations',
+          description: 'Collect event-object relationships',
+          color: 'nord-orange',
+          hasInputs: true,
+          hasOutputs: true
+        },
+        {
+          type: 'ee-relations-collection',
+          label: 'E-E Relations',
+          description: 'Collect event-event relationships',
+          color: 'nord-orange',
+          hasInputs: true,
+          hasOutputs: true
+        }
+      ]
+    },
+    {
+      title: 'Output & Export',
+      nodes: [
+        {
+          type: 'core-metamodel',
+          label: 'CORE Metamodel',
+          description: 'Final CORE metamodel output',
+          color: 'core-model',
+          hasInputs: true,
+          hasOutputs: true
+        },
+        {
+          type: 'summary-output',
+          label: 'Summary Output',
+          description: 'Display metamodel summary statistics',
+          color: 'core-model',
+          hasInputs: true,
+          hasOutputs: false
+        },
+        {
+          type: 'table-output',
+          label: 'Table Output',
+          description: 'Display data in tabular format',
+          color: 'core-model',
+          hasInputs: true,
+          hasOutputs: false
+        },
+        {
+          type: 'export-output',
+          label: 'Export Output',
+          description: 'Export metamodel to various file formats',
+          color: 'core-model',
+          hasInputs: true,
+          hasOutputs: false
+        }
+      ]
+    },
+    {
+      title: 'Utilities',
+      collapsed: true,
+      nodes: [
+        {
+          type: 'value-extractor',
+          label: 'Value Extractor',
+          description: 'Extract specific values using expressions',
+          color: 'nord-yellow',
+          hasInputs: true,
+          hasOutputs: true
+        },
+        {
+          type: 'timestamp-parser',
+          label: 'Timestamp Parser',
+          description: 'Parse timestamp strings to datetime objects',
+          color: 'nord-yellow',
+          hasInputs: true,
+          hasOutputs: true
+        },
+        {
+          type: 'uuid-generator',
+          label: 'UUID Generator',
+          description: 'Generate unique identifiers',
+          color: 'nord-yellow',
+          hasInputs: false,
+          hasOutputs: true
+        }
+      ]
+    }
+  ];
+
   constructor(private nodeService: NodeService) {}
+
+  /**
+   * Toggle the collapsed state of a category.
+   *
+   * :param category: NodeCategory to toggle
+   * :return: void
+   */
+  toggleCategory(category: NodeCategory): void {
+    category.collapsed = !category.collapsed;
+  }
 
   /**
    * Called when user starts dragging a library node.
    *
    * :param event: DragEvent
-   * :param nodeType: string identifier for the node type (e.g. 'input')
+   * :param nodeType: string identifier for the node type
    * :return: void
    */
   onDragStart(event: DragEvent, nodeType: string): void {

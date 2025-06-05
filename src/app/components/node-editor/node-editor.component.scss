@@ -40,16 +40,15 @@ f-flow {
   outline: none;
   border-color: #5e81ac;
 }
+
 .generic-node {
   background-color: #4c566a; /* Nord frost */
   border: 2px solid #5e81ac; /* Nord frost */
   border-radius: 12px;
   min-width: 200px;
-  // box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
   display: flex;
   flex-direction: column;
   position: relative;
-  // transition: all 0.3s ease;
 }
 
 .generic-node:hover {
@@ -93,12 +92,10 @@ f-flow {
   border-radius: 50%;
   border: 2px solid #2e3440;
   cursor: pointer;
-  // transition: all 0.2s ease;
   position: relative;
 }
 
 .port:hover {
-  // transform: scale(1.2);
   border-color: #eceff4;
 }
 
@@ -122,6 +119,7 @@ f-flow {
 .nord-red { background-color: #bf616a; }
 .nord-orange { background-color: #d08770; }
 .nord-yellow { background-color: #ebcb8b; }
+.core-model { background-color: #88c0d0; }
 
 .nord-blue:hover { background-color: #81a1c1; }
 .nord-green:hover { background-color: #b8d4a3; }
@@ -129,3 +127,4 @@ f-flow {
 .nord-red:hover { background-color: #d08a8a; }
 .nord-orange:hover { background-color: #dba58a; }
 .nord-yellow:hover { background-color: #f0d8a3; }
+.core-model:hover { background-color: #9dd0e0; }
