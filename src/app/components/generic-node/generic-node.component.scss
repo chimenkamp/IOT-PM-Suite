@@ -1,0 +1,89 @@
+.generic-node {
+  background-color: #4c566a; /* Nord frost */
+  border: 2px solid #5e81ac; /* Nord frost */
+  border-radius: 12px;
+  min-width: 200px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.generic-node:hover {
+  border-color: #81a1c1;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+}
+
+.generic-node.selected {
+  border-color: #88c0d0;
+  box-shadow: 0 0 0 2px rgba(136, 192, 208, 0.3);
+}
+
+.ports-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.5rem;
+}
+
+.inputs {
+  border-bottom: 1px solid #434c5e;
+}
+
+.outputs {
+  border-top: 1px solid #434c5e;
+}
+
+.port-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.outputs .port-group {
+  justify-content: flex-end;
+}
+
+.port {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid #2e3440;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.port:hover {
+  transform: scale(1.2);
+  border-color: #eceff4;
+}
+
+.port-label {
+  color: #d8dee9;
+  font-size: 0.75rem;
+  user-select: none;
+}
+
+.node-body {
+  padding: 1rem;
+  background-color: rgba(62, 70, 83, 0.5);
+  border-radius: 8px;
+  margin: 0.5rem;
+}
+
+/* Nord color variations for ports */
+.nord-blue { background-color: #5e81ac; }
+.nord-green { background-color: #a3be8c; }
+.nord-purple { background-color: #b48ead; }
+.nord-red { background-color: #bf616a; }
+.nord-orange { background-color: #d08770; }
+.nord-yellow { background-color: #ebcb8b; }
+
+.nord-blue:hover { background-color: #81a1c1; }
+.nord-green:hover { background-color: #b8d4a3; }
+.nord-purple:hover { background-color: #c7a3c7; }
+.nord-red:hover { background-color: #d08a8a; }
+.nord-orange:hover { background-color: #dba58a; }
+.nord-yellow:hover { background-color: #f0d8a3; }

@@ -1,0 +1,110 @@
+:host {
+  display: block;
+  height: 100vh;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.app-container {
+  display: flex;
+  height: 100%;
+  background-color: #2e3440; /* Nord polar night */
+}
+
+.sidebar {
+  width: 10%;
+  min-width: 200px;
+  background-color: #3b4252; /* Nord polar night */
+  border-right: 1px solid #434c5e;
+  padding: 1rem;
+  overflow-y: auto;
+}
+
+.sidebar h3 {
+  color: #eceff4; /* Nord snow storm */
+  margin: 0 0 1rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.node-library {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.library-node {
+  cursor: grab;
+  transition: transform 0.2s ease;
+}
+
+.library-node:hover {
+  transform: translateX(4px);
+}
+
+.library-node:active {
+  cursor: grabbing;
+}
+
+.node-preview {
+  background-color: #4c566a; /* Nord frost */
+  border: 2px solid #5e81ac; /* Nord frost */
+  border-radius: 12px;
+  padding: 0.75rem;
+  color: #eceff4;
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  min-height: 40px;
+}
+
+.input-port, .output-port {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid #2e3440;
+  position: relative;
+}
+
+.output-port {
+  margin-left: auto;
+}
+
+.input-port {
+  margin-right: auto;
+}
+
+.editor-container {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+.flow-editor {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  background-color: #2e3440;
+}
+
+.grid-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image:
+    linear-gradient(rgba(76, 86, 106, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(76, 86, 106, 0.1) 1px, transparent 1px);
+  background-size: 20px 20px;
+  pointer-events: none;
+}
+
+/* Nord color classes */
+.nord-blue { background-color: #5e81ac; }
+.nord-green { background-color: #a3be8c; }
+.nord-purple { background-color: #b48ead; }
+.nord-red { background-color: #bf616a; }
+.nord-orange { background-color: #d08770; }
+.nord-yellow { background-color: #ebcb8b; }

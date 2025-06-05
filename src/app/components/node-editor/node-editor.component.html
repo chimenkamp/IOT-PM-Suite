@@ -1,0 +1,56 @@
+<f-flow fDraggable (fLoaded)="onLoaded()" (fCreateConnection)="onCreateConnection($event)">
+  <f-canvas fZoom (fCanvasChange)="onCanvasChanged($event)">
+    <f-connection-for-create fBehavior="floating"></f-connection-for-create>
+
+    @for (connection of connections; track connection.to) {
+      <f-connection [fReassignDisabled]="false"
+                    [fOutputId]="connection.from" [fInputId]="connection.to"
+                    fBehavior="floating">
+      </f-connection>
+    }
+
+    @for (node of this.nodes$ | async; track $index) {
+      <div
+        class="generic-node"
+        fNode fDragHandle [fNodePosition]="{ x: node.position.x, y: node.position.y }"
+      >
+
+
+        <!-- Input ports -->
+        <div class="ports-container inputs" *ngIf="node.inputs.length > 0">
+          <div *ngFor="let input of node.inputs" class="port-group">
+            <div
+              fNodeInput
+              [fInputId]="input.id"
+              [class]="'port input-port ' + input.color"
+              [title]="input.label"
+            ></div>
+            <span class="port-label">{{ input.label }}</span>
+          </div>
+        </div>
+
+        <!-- Output ports -->
+        <div class="ports-container outputs" *ngIf="node.outputs.length > 0">
+          <div *ngFor="let output of node.outputs" class="port-group">
+            <span class="port-label">{{ output.label }}</span>
+            <div
+              fNodeOutput
+              [fOutputId]="output.id"
+              [fCanBeConnectedInputs]="canConnectTo(output.id)"
+              [class]="'port output-port ' + output.color"
+              [title]="output.label"
+            ></div>
+          </div>
+        </div>
+
+        <div class="node-body">
+          <div class="node-content">
+                  <h4>{{ node.content.title }}</h4>
+                  <p *ngIf="node.content.description">{{ node.content.description }}</p>
+                </div>
+          </div>
+
+      </div>
+    }
+  </f-canvas>
+</f-flow>
