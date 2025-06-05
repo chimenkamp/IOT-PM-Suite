@@ -1,0 +1,293 @@
+// src/app/components/mapping-toolbar/mapping-toolbar.component.scss
+
+.mapping-toolbar {
+  padding: 1rem;
+  background-color: #3b4252;
+  border-bottom: 1px solid #434c5e;
+  border-top: 1px solid #434c5e;
+}
+
+.toolbar-section h3 {
+  color: #eceff4;
+  margin: 0 0 1rem 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.button-group {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.toolbar-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #eceff4;
+  background-color: #4c566a;
+  border: 1px solid #5e81ac;
+  min-width: 120px;
+}
+
+.toolbar-button:hover:not(:disabled) {
+  background-color: #5e81ac;
+  border-color: #81a1c1;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.toolbar-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background-color: #434c5e;
+  border-color: #4c566a;
+}
+
+.button-icon {
+  font-size: 1rem;
+}
+
+.save-button {
+  border-color: #a3be8c;
+}
+
+.save-button:hover:not(:disabled) {
+  background-color: #a3be8c;
+  border-color: #b8d4a3;
+}
+
+.load-button {
+  border-color: #88c0d0;
+}
+
+.load-button:hover:not(:disabled) {
+  background-color: #88c0d0;
+  border-color: #9dd0e0;
+}
+
+.clear-button {
+  border-color: #bf616a;
+}
+
+.clear-button:hover:not(:disabled) {
+  background-color: #bf616a;
+  border-color: #d08a8a;
+}
+
+/* Dialog Styles */
+.dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+.dialog-content {
+  background-color: #3b4252;
+  border: 2px solid #4c566a;
+  border-radius: 12px;
+  padding: 1.5rem;
+  width: 90%;
+  max-width: 450px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.dialog-content h4 {
+  color: #eceff4;
+  margin: 0 0 1.5rem 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-group label {
+  display: block;
+  color: #d8dee9;
+  font-size: 0.8rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+.form-input, .form-textarea {
+  width: 100%;
+  padding: 0.6rem;
+  background-color: #2e3440;
+  border: 1px solid #4c566a;
+  border-radius: 6px;
+  color: #eceff4;
+  font-size: 0.85rem;
+  font-family: inherit;
+  transition: border-color 0.2s ease;
+  box-sizing: border-box;
+}
+
+.form-input:focus, .form-textarea:focus {
+  outline: none;
+  border-color: #5e81ac;
+  box-shadow: 0 0 0 2px rgba(94, 129, 172, 0.2);
+}
+
+.form-textarea {
+  resize: vertical;
+  min-height: 60px;
+}
+
+.mapping-stats {
+  display: flex;
+  gap: 1rem;
+  margin: 1rem 0;
+  padding: 0.75rem;
+  background-color: rgba(76, 86, 106, 0.3);
+  border-radius: 6px;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.stat-label {
+  color: #d8dee9;
+  font-size: 0.7rem;
+  font-weight: 500;
+}
+
+.stat-value {
+  color: #88c0d0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.dialog-buttons {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  margin-top: 1.5rem;
+}
+
+.dialog-button {
+  padding: 0.6rem 1.2rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 80px;
+}
+
+.cancel-button {
+  background-color: #4c566a;
+  color: #d8dee9;
+  border: 1px solid #5e81ac;
+}
+
+.cancel-button:hover {
+  background-color: #5e81ac;
+  color: #eceff4;
+}
+
+.dialog-button.save-button {
+  background-color: #a3be8c;
+  color: #2e3440;
+  border: 1px solid #a3be8c;
+}
+
+.dialog-button.save-button:hover:not(:disabled) {
+  background-color: #b8d4a3;
+  border-color: #b8d4a3;
+}
+
+.dialog-button.save-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background-color: #7a9570;
+}
+
+/* Status Messages */
+.status-message {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 10001;
+  max-width: 300px;
+  word-wrap: break-word;
+}
+
+.status-message.success {
+  background-color: #a3be8c;
+  color: #2e3440;
+  border: 1px solid #a3be8c;
+}
+
+.status-message.error {
+  background-color: #bf616a;
+  color: #eceff4;
+  border: 1px solid #bf616a;
+}
+
+.status-message.info {
+  background-color: #5e81ac;
+  color: #eceff4;
+  border: 1px solid #5e81ac;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .mapping-toolbar {
+    padding: 0.75rem;
+  }
+
+  .button-group {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .toolbar-button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .dialog-content {
+    margin: 1rem;
+    width: calc(100% - 2rem);
+  }
+
+  .dialog-buttons {
+    flex-direction: column;
+  }
+
+  .mapping-stats {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .stat-item {
+    flex-direction: row;
+    justify-content: space-between;
+  }
+}

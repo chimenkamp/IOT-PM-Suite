@@ -1,10 +1,12 @@
 // src/app/app.component.ts
 
-import { Component } from '@angular/core';
+import { Component, Inject } from '@angular/core';
 import { FFlowModule } from '@foblex/flow';
 import { NodeService } from './services/node.service';
-import { NodeEditorComponent } from './components/node-editor/node-editor.compenent';
+import { MappingService } from './services/mapping.service';
+import { MappingToolbarComponent } from './components/mapping-toolbar/mapping-toolbar.component';
 import { CommonModule } from '@angular/common';
+import { NodeEditorComponent } from './components/node-editor/node-editor.compenent';
 
 interface NodeCategory {
   title: string;
@@ -24,7 +26,7 @@ interface NodeDefinition {
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [NodeEditorComponent, FFlowModule, CommonModule],
+  imports: [NodeEditorComponent, MappingToolbarComponent, FFlowModule, CommonModule],
   template: `
     <div class="app-container">
       <div class="sidebar">
@@ -32,6 +34,9 @@ interface NodeDefinition {
           <h2>IoT Process Mining Suite</h2>
           <p>Node-based data mapping tool</p>
         </div>
+
+        <!-- Mapping Operations Toolbar -->
+        <app-mapping-toolbar></app-mapping-toolbar>
 
         <div class="node-library">
           @for (category of nodeCategories; track category.title) {
@@ -161,9 +166,9 @@ export class AppComponent {
           hasOutputs: true
         },
         {
-          type: 'stream-extractor',
-          label: 'Stream Extractor',
-          description: 'Extract sensor stream data from events',
+          type: 'column-selector',
+          label: 'Column Selector',
+          description: 'Select specific columns from data tables',
           color: 'nord-red',
           hasInputs: true,
           hasOutputs: true
@@ -315,7 +320,16 @@ export class AppComponent {
           color: 'core-model',
           hasInputs: true,
           hasOutputs: false
-        }
+        },
+        {
+          type: 'discover-OCEL-model',
+          label: 'Discover OCEL Model',
+          description: 'Discover and visualize OCEL model from data',
+          color: 'core-model',
+          hasInputs: true,
+          hasOutputs: false
+        },
+
       ]
     },
     {
@@ -350,7 +364,10 @@ export class AppComponent {
     }
   ];
 
-  constructor(private nodeService: NodeService) {}
+  constructor(
+    private nodeService: NodeService,
+    private mappingService: MappingService
+  ) {}
 
   /**
    * Toggle the collapsed state of a category.

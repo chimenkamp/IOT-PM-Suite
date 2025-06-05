@@ -4,10 +4,14 @@ import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { FFlowModule } from '@foblex/flow';
 
 import { routes } from './app.routes';
+import { NodeService } from './services/node.service';
+import { MappingService } from './services/mapping.service';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideRouter(routes),
-    importProvidersFrom(BrowserAnimationsModule, FFlowModule)
+    importProvidersFrom(BrowserAnimationsModule, FFlowModule),
+    NodeService,
+    MappingService
   ]
 };

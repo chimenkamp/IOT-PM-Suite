@@ -3,25 +3,29 @@
     <f-connection-for-create fBehavior="floating"></f-connection-for-create>
 
     @for (connection of connections; track connection.to) {
-      <f-connection [fReassignDisabled]="false"
-                    [fOutputId]="connection.from" [fInputId]="connection.to"
-                    fBehavior="floating">
+      <f-connection
+        [fReassignDisabled]="false"
+        [fOutputId]="connection.from"
+        [fInputId]="connection.to"
+        fBehavior="floating"
+      >
       </f-connection>
     }
 
     @for (node of this.nodes$ | async; track $index) {
       <div
         class="generic-node"
-        fNode fDragHandle [fNodePosition]="{ x: node.position.x, y: node.position.y }"
+        fNode
+        fDragHandle
+        [fNodePosition]="{ x: node.position.x, y: node.position.y }"
       >
-
-
         <!-- Input ports -->
         <div class="ports-container inputs" *ngIf="node.inputs.length > 0">
           <div *ngFor="let input of node.inputs" class="port-group">
             <div
               fNodeInput
               [fInputId]="input.id"
+              [fInputMultiple]="true"
               [class]="'port input-port ' + input.color"
               [title]="input.label"
             ></div>
@@ -35,6 +39,7 @@
             <span class="port-label">{{ output.label }}</span>
             <div
               fNodeOutput
+              [fOutputMultiple]="true"
               [fOutputId]="output.id"
               [fCanBeConnectedInputs]="canConnectTo(output.id)"
               [class]="'port output-port ' + output.color"
@@ -45,11 +50,58 @@
 
         <div class="node-body">
           <div class="node-content">
-                  <h4>{{ node.content.title }}</h4>
-                  <p *ngIf="node.content.description">{{ node.content.description }}</p>
-                </div>
-          </div>
+            <!-- Title and Description -->
+            <h4>{{ node.content.title }}</h4>
+            <p *ngIf="node.content.description">{{ node.content.description }}</p>
 
+            <!-- Editable Form Section (only if displayOnly is false or unset) -->
+            <div *ngIf="!node.content.displayOnly">
+              <!-- Text Input -->
+              <div *ngIf="node.content.hasInput">
+                <label>
+                  <span>{{ node.content.inputPlaceholder || 'Enter value:' }}</span>
+                  <input
+                    type="text"
+                    [placeholder]="node.content.inputPlaceholder"
+                  />
+                </label>
+              </div>
+
+              <!-- Select Dropdown -->
+              <div *ngIf="node.content.hasSelect">
+                <label>
+                  {{ node.content.selectLabel || 'Select option:' }}
+                  <select>
+                    <option
+                      *ngFor="let opt of node.content.selectOptions"
+                      [value]="opt"
+                    >
+                      {{ opt }}
+                    </option>
+                  </select>
+                </label>
+              </div>
+
+              <!-- Configurable Options (Checkbox List) -->
+              <div *ngIf="node.content.configOptions?.length">
+                <div *ngFor="let opt of node.content.configOptions">
+                  <label>
+                    <input type="checkbox" [value]="opt" class="form-control" />
+                    {{ opt }}
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <!-- Read-Only Display Section (if displayOnly is true) -->
+            <div *ngIf="node.content.displayOnly">
+              <!-- If there is a status, show it -->
+              <div *ngIf="node.content.status">
+                <span class="status">{{ node.content.status }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     }
   </f-canvas>
