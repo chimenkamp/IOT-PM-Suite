@@ -1,10 +1,11 @@
-// src/app/app.ts
+// src/app/app.ts - Complete Root Component
 
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { FFlowModule } from '@foblex/flow';
 import { NodeService } from './services/node.service';
 import { MappingService } from './services/mapping.service';
 import { PipelineService } from './services/pipeline.service';
+import { ApiService } from './services/api.service';
 import { MappingToolbarComponent } from './components/mapping-toolbar/mapping-toolbar.component';
 import { CommonModule } from '@angular/common';
 import { NodeEditorComponent } from './components/node-editor/node-editor.compenent';
@@ -130,30 +131,7 @@ interface NodeDefinition {
             </div>
           </div>
 
-          <div class="pipeline-controls">
-            <div class="row">
-              <div class="col-8">
-                <button
-                  class="control-button execute-button"
-                  (click)="executePipeline()"
-                  [disabled]="!canExecutePipeline()"
-                  title="Execute the current pipeline"
-                >
-                  ▶️ Execute Pipeline
-                </button>
-              </div>
-              <div class="col-4">
-                <button
-              class="control-button validate-button"
-              (click)="validatePipeline()"
-              title="Validate pipeline connections"
-              >
-                ✓ Validate
-              </button>
 
-                </div>
-              </div>
-          </div>
         </div>
       </div>
 
@@ -168,10 +146,21 @@ interface NodeDefinition {
         </div>
       </div>
     </div>
+
+    <!-- Connection Status Indicator -->
+    <div class="connection-status" [class]="connectionStatusClass">
+      <span class="status-icon">{{ connectionStatusIcon }}</span>
+      <span class="status-text">{{ connectionStatusText }}</span>
+    </div>
   `,
   styleUrls: ['./app.scss'],
 })
-export class AppComponent {
+export class AppComponent implements OnInit {
+  title = 'BROOM IoT Process Mining';
+  connectionStatusClass = 'disconnected';
+  connectionStatusIcon = '⚫';
+  connectionStatusText = 'Connecting...';
+
   nodeCategories: NodeCategory[] = [
     {
       title: 'Data Input & Loading',
@@ -349,14 +338,37 @@ export class AppComponent {
   constructor(
     private nodeService: NodeService,
     private mappingService: MappingService,
-    private pipelineService: PipelineService
+    private pipelineService: PipelineService,
+    private apiService: ApiService
   ) {}
+
+  ngOnInit(): void {
+    // Monitor backend connection status
+    this.apiService.connectionStatus$.subscribe(isConnected => {
+      this.updateConnectionStatus(isConnected);
+    });
+
+    // Initial connection check
+    this.apiService.checkConnection();
+  }
+
+  /**
+   * Update connection status display.
+   */
+  private updateConnectionStatus(isConnected: boolean): void {
+    if (isConnected) {
+      this.connectionStatusClass = 'connected';
+      this.connectionStatusIcon = '🟢';
+      this.connectionStatusText = 'Backend Connected';
+    } else {
+      this.connectionStatusClass = 'disconnected';
+      this.connectionStatusIcon = '🔴';
+      this.connectionStatusText = 'Backend Disconnected';
+    }
+  }
 
   /**
    * Toggle the collapsed state of a category.
-   *
-   * :param category: NodeCategory to toggle
-   * :return: void
    */
   toggleCategory(category: NodeCategory): void {
     category.collapsed = !category.collapsed;
@@ -364,10 +376,6 @@ export class AppComponent {
 
   /**
    * Called when user starts dragging a library node.
-   *
-   * :param event: DragEvent
-   * :param nodeType: string identifier for the node type
-   * :return: void
    */
   onDragStart(event: DragEvent, nodeType: string): void {
     if (event.dataTransfer) {
@@ -377,9 +385,6 @@ export class AppComponent {
 
   /**
    * Prevent default so drop event can fire.
-   *
-   * :param event: DragEvent
-   * :return: void
    */
   onDragOver(event: DragEvent): void {
     event.preventDefault();
@@ -387,10 +392,6 @@ export class AppComponent {
 
   /**
    * Called when a library node is dropped onto the editor canvas.
-   * Adds a new node via NodeService.
-   *
-   * :param event: DragEvent
-   * :return: void
    */
   onDrop(event: DragEvent): void {
     event.preventDefault();
@@ -406,8 +407,6 @@ export class AppComponent {
 
   /**
    * Check if pipeline can be executed (has nodes and connections).
-   *
-   * :return: boolean
    */
   canExecutePipeline(): boolean {
     const nodes = this.nodeService.getAllNodes();
@@ -417,8 +416,6 @@ export class AppComponent {
 
   /**
    * Execute the current pipeline.
-   *
-   * :return: void
    */
   executePipeline(): void {
     if (!this.canExecutePipeline()) {
@@ -426,36 +423,119 @@ export class AppComponent {
       return;
     }
 
-    const pipeline = this.pipelineService.createPipelineDefinition();
+    const nodes = this.nodeService.getAllNodes();
+    const connections = this.mappingService.connectionObserver$.getValue();
+    const pipeline = this.apiService.createPipelineDefinition(nodes, connections);
+
     console.log('Executing pipeline:', pipeline);
 
-    // Here you would send the pipeline to the backend for execution
-    this.pipelineService
-      .executePipeline(pipeline)
-      .then((result) => {
+    // Execute pipeline through API service
+    this.apiService.executePipeline(pipeline).subscribe({
+      next: (result) => {
         console.log('Pipeline execution completed:', result);
-        // Handle execution results
-      })
-      .catch((error) => {
+        if (result.success) {
+          alert('Pipeline executed successfully!');
+          // Handle execution results
+          if (result.results) {
+            console.log('Pipeline results:', result.results);
+            this.showResults(result.results);
+          }
+        } else {
+          alert('Pipeline execution failed: ' + (result.errors?.join(', ') || 'Unknown error'));
+        }
+      },
+      error: (error) => {
         console.error('Pipeline execution failed:', error);
-        alert('Pipeline execution failed: ' + error.message);
-      });
+        alert('Pipeline execution failed: ' + error);
+      }
+    });
   }
 
   /**
    * Validate the current pipeline for correctness.
-   *
-   * :return: void
    */
   validatePipeline(): void {
-    const validationResult = this.pipelineService.validatePipeline();
+    const nodes = this.nodeService.getAllNodes();
+    const connections = this.mappingService.connectionObserver$.getValue();
+    const pipeline = this.apiService.createPipelineDefinition(nodes, connections);
 
-    if (validationResult.isValid) {
-      alert('Pipeline is valid and ready for execution!');
-    } else {
-      alert(
-        'Pipeline validation failed:\n' + validationResult.errors.join('\n')
-      );
+    this.apiService.validatePipeline(pipeline).subscribe({
+      next: (result) => {
+        if (result.isValid) {
+          alert('Pipeline is valid and ready for execution!');
+        } else {
+          const errorMessage = 'Pipeline validation failed:\n' +
+            result.errors.join('\n') +
+            (result.warnings.length > 0 ? '\n\nWarnings:\n' + result.warnings.join('\n') : '');
+          alert(errorMessage);
+        }
+      },
+      error: (error) => {
+        alert('Pipeline validation failed: ' + error);
+      }
+    });
+  }
+
+  /**
+   * Show execution results (implement based on your needs).
+   */
+  private showResults(results: any): void {
+    // This could open a dialog, navigate to a results page, etc.
+    console.log('Execution results:', results);
+
+    // Example: Show basic results in console or UI
+    if (results.core_model) {
+      console.log('CORE Model created with:', results.core_components);
     }
+
+    if (results.extended_table) {
+      console.log('Extended table has', results.extended_table.length, 'rows');
+    }
+  }
+
+  /**
+   * Get pipeline statistics for display.
+   */
+  getPipelineStats(): any {
+    const nodes = this.nodeService.getAllNodes();
+    const connections = this.mappingService.connectionObserver$.getValue();
+
+    return {
+      nodes: nodes.length,
+      connections: connections.length,
+      dataSources: nodes.filter(n => ['read-file', 'mqtt-connector'].includes(n.type)).length,
+      processing: nodes.filter(n => ['column-selector', 'attribute-selector', 'data-filter', 'data-mapper'].includes(n.type)).length,
+      outputs: nodes.filter(n => ['table-output', 'export-ocel', 'ocpm-discovery'].includes(n.type)).length
+    };
+  }
+
+  /**
+   * Clear the entire pipeline.
+   */
+  clearPipeline(): void {
+    if (confirm('Are you sure you want to clear the entire pipeline?')) {
+      this.nodeService.clearAllNodes();
+      this.mappingService.connectionObserver$.next([]);
+    }
+  }
+
+  /**
+   * Export pipeline definition.
+   */
+  exportPipeline(): void {
+    const nodes = this.nodeService.getAllNodes();
+    const connections = this.mappingService.connectionObserver$.getValue();
+    const pipeline = this.apiService.createPipelineDefinition(nodes, connections);
+
+    const jsonString = JSON.stringify(pipeline, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    this.apiService.downloadFile(blob, `broom_pipeline_${Date.now()}.json`);
+  }
+
+  /**
+   * Test backend connection.
+   */
+  testConnection(): void {
+    this.apiService.checkConnection();
   }
 }

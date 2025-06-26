@@ -1,4 +1,4 @@
-// src/app/services/pipeline.service.ts
+// src/app/services/pipeline.service.ts - Complete Pipeline Service
 
 import { Injectable } from '@angular/core';
 import { NodeService, FlowNode } from './node.service';
@@ -58,7 +58,7 @@ export interface ExecutionResult {
   providedIn: 'root'
 })
 export class PipelineService {
-  private readonly backendUrl = 'http://localhost:5000/api'; // Configure as needed
+  private readonly backendUrl = 'http://localhost:5100/api'; // Updated port
 
   constructor(
     private nodeService: NodeService,
@@ -68,8 +68,6 @@ export class PipelineService {
 
   /**
    * Create a pipeline definition from current nodes and connections.
-   *
-   * :return: PipelineDefinition
    */
   createPipelineDefinition(): PipelineDefinition {
     const nodes = this.nodeService.getAllNodes();
@@ -114,8 +112,6 @@ export class PipelineService {
 
   /**
    * Validate the current pipeline for correctness.
-   *
-   * :return: ValidationResult
    */
   validatePipeline(): ValidationResult {
     const nodes = this.nodeService.getAllNodes();
@@ -207,9 +203,6 @@ export class PipelineService {
 
   /**
    * Execute the pipeline by sending it to the backend.
-   *
-   * :param pipeline: PipelineDefinition to execute
-   * :return: Promise<ExecutionResult>
    */
   async executePipeline(pipeline: PipelineDefinition): Promise<ExecutionResult> {
     try {
@@ -240,9 +233,6 @@ export class PipelineService {
 
   /**
    * Get execution status and results.
-   *
-   * :param executionId: ID of the execution to check
-   * :return: Promise<ExecutionResult>
    */
   async getExecutionStatus(executionId: string): Promise<ExecutionResult> {
     try {
@@ -263,10 +253,38 @@ export class PipelineService {
   }
 
   /**
+   * Upload dataset to backend.
+   */
+  async uploadDataset(formData: FormData): Promise<any> {
+    try {
+      const response = await this.http.post(
+        `${this.backendUrl}/dataset/upload`,
+        formData
+      ).toPromise();
+
+      return response;
+    } catch (error) {
+      throw new Error(`Failed to upload dataset: ${error}`);
+    }
+  }
+
+  /**
+   * Test connection to backend.
+   */
+  async testConnection(): Promise<boolean> {
+    try {
+      const response = await this.http.get(
+        `${this.backendUrl}/health`
+      ).toPromise();
+
+      return !!response;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  /**
    * Map color codes to data types.
-   *
-   * :param color: Color code from node definition
-   * :return: string data type name
    */
   private mapColorToDataType(color: string): string {
     const colorMap: Record<string, string> = {
@@ -283,9 +301,6 @@ export class PipelineService {
 
   /**
    * Extract node ID from port ID.
-   *
-   * :param portId: Port ID in format "node-X-port-name"
-   * :return: string node ID
    */
   private extractNodeIdFromPortId(portId: string): string {
     const parts = portId.split('-');
@@ -294,10 +309,6 @@ export class PipelineService {
 
   /**
    * Get data type for a connection.
-   *
-   * :param connection: Connection object
-   * :param nodes: Array of nodes
-   * :return: string data type
    */
   private getConnectionDataType(connection: Connection, nodes: FlowNode[]): string {
     const fromNode = nodes.find(n => n.outputs.some(o => o.id === connection.from));
@@ -312,10 +323,6 @@ export class PipelineService {
 
   /**
    * Calculate execution order using topological sort.
-   *
-   * :param nodes: Array of pipeline nodes
-   * :param connections: Array of pipeline connections
-   * :return: Array of node IDs in execution order
    */
   private calculateExecutionOrder(nodes: PipelineNode[], connections: PipelineConnection[]): string[] {
     const nodeIds = nodes.map(n => n.id);
@@ -357,10 +364,6 @@ export class PipelineService {
 
   /**
    * Check if the pipeline has cycles.
-   *
-   * :param nodes: Array of nodes
-   * :param connections: Array of connections
-   * :return: boolean indicating if cycles exist
    */
   private hasCycles(nodes: FlowNode[], connections: Connection[]): boolean {
     const nodeIds = nodes.map(n => n.id);
@@ -405,5 +408,46 @@ export class PipelineService {
     }
 
     return false;
+  }
+
+  /**
+   * Create a sample pipeline for testing.
+   */
+  createSamplePipeline(): PipelineDefinition {
+    return {
+      id: 'sample-pipeline',
+      name: 'Sample IoT Pipeline',
+      description: 'A sample pipeline for IoT data processing',
+      version: '1.0.0',
+      createdAt: new Date().toISOString(),
+      nodes: [],
+      connections: []
+    };
+  }
+
+  /**
+   * Get pipeline templates.
+   */
+  getPipelineTemplates(): PipelineDefinition[] {
+    return [
+      {
+        id: 'iot-basic',
+        name: 'Basic IoT Processing',
+        description: 'Basic pipeline for IoT sensor data',
+        version: '1.0.0',
+        createdAt: new Date().toISOString(),
+        nodes: [],
+        connections: []
+      },
+      {
+        id: 'process-mining',
+        name: 'Process Mining Pipeline',
+        description: 'Pipeline for process mining analysis',
+        version: '1.0.0',
+        createdAt: new Date().toISOString(),
+        nodes: [],
+        connections: []
+      }
+    ];
   }
 }

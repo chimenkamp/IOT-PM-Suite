@@ -1,4 +1,4 @@
-// src/app/components/node-editor/node-editor.component.ts
+// src/app/components/node-editor/node-editor.component.ts - Complete Implementation
 
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject, OnDestroy, OnInit, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -7,6 +7,7 @@ import { FCanvasChangeEvent, FCanvasComponent, FCreateConnectionEvent, FFlowModu
 import { NodeService, FlowNode } from '../../services/node.service';
 import { MappingService, Connection } from '../../services/mapping.service';
 import { PipelineService } from '../../services/pipeline.service';
+import { ApiService } from '../../services/api.service';
 import { Observable } from 'rxjs';
 import { BrowserService } from '@foblex/platform';
 import { PointExtensions } from '@foblex/2d';
@@ -39,6 +40,7 @@ export class NodeEditorComponent implements OnDestroy, OnInit {
     private nodeService: NodeService,
     private mappingService: MappingService,
     private pipelineService: PipelineService,
+    private apiService: ApiService,
     private changeDetectorRef: ChangeDetectorRef
   ) {
     this.nodes$ = this.nodeService.nodes$;
@@ -94,9 +96,6 @@ export class NodeEditorComponent implements OnDestroy, OnInit {
 
   /**
    * Select a node for configuration.
-   *
-   * :param nodeId: ID of the node to select
-   * :return: void
    */
   public selectNode(nodeId: string): void {
     this.selectedNodeId = nodeId;
@@ -105,11 +104,6 @@ export class NodeEditorComponent implements OnDestroy, OnInit {
 
   /**
    * Update node configuration.
-   *
-   * :param nodeId: ID of the node to update
-   * :param key: Configuration key
-   * :param value: New value
-   * :return: void
    */
   public updateNodeConfig(nodeId: string, key: string, value: any): void {
     const node = this.nodeService.getNodeById(nodeId);
@@ -121,10 +115,6 @@ export class NodeEditorComponent implements OnDestroy, OnInit {
 
   /**
    * Handle file selection for file upload nodes.
-   *
-   * :param event: File input change event
-   * :param nodeId: ID of the node
-   * :return: void
    */
   public onFileSelected(event: Event, nodeId: string): void {
     const input = event.target as HTMLInputElement;
@@ -137,14 +127,26 @@ export class NodeEditorComponent implements OnDestroy, OnInit {
 
       // Store file for backend processing
       this.updateNodeConfig(nodeId, 'file', file);
+
+      // Upload file to backend
+      const fileType = this.apiService.getFileTypeFromName(file.name);
+      this.apiService.uploadDataset(file, fileType).subscribe({
+        next: (result) => {
+          console.log('File uploaded for node:', result);
+          this.updateNodeConfig(nodeId, 'fileId', result.fileId);
+          this.updateNodeConfig(nodeId, 'uploadStatus', 'success');
+        },
+        error: (error) => {
+          console.error('File upload failed:', error);
+          this.updateNodeConfig(nodeId, 'uploadStatus', 'error');
+          this.updateNodeConfig(nodeId, 'uploadError', error);
+        }
+      });
     }
   }
 
   /**
    * Get file accept types for different node types.
-   *
-   * :param nodeType: Type of the node
-   * :return: string of accepted file types
    */
   public getFileAcceptTypes(nodeType: string): string {
     const acceptTypes: Record<string, string> = {
@@ -156,9 +158,6 @@ export class NodeEditorComponent implements OnDestroy, OnInit {
 
   /**
    * Get data type name from color code.
-   *
-   * :param color: Color code
-   * :return: string data type name
    */
   public getDataTypeFromColor(color: string): string {
     const colorMap: Record<string, string> = {
@@ -175,9 +174,6 @@ export class NodeEditorComponent implements OnDestroy, OnInit {
 
   /**
    * Get node status for display.
-   *
-   * :param node: FlowNode
-   * :return: NodeStatus or null
    */
   public getNodeStatus(node: FlowNode): NodeStatus | null {
     // Check if node is properly configured
@@ -201,6 +197,14 @@ export class NodeEditorComponent implements OnDestroy, OnInit {
       };
     }
 
+    // Check upload status
+    if (node.config?.['uploadStatus'] === 'error') {
+      return {
+        type: 'error',
+        message: 'File upload failed'
+      };
+    }
+
     // Check if node has proper connections
     const hasRequiredInputs = node.inputs.length === 0 ||
       node.inputs.some(input =>
@@ -214,6 +218,21 @@ export class NodeEditorComponent implements OnDestroy, OnInit {
       };
     }
 
+    // Check test status
+    if (node.config?.['testStatus'] === 'success') {
+      return {
+        type: 'success',
+        message: 'Test passed'
+      };
+    }
+
+    if (node.config?.['testStatus'] === 'error') {
+      return {
+        type: 'error',
+        message: 'Test failed'
+      };
+    }
+
     return {
       type: 'ready',
       message: 'Ready'
@@ -222,9 +241,6 @@ export class NodeEditorComponent implements OnDestroy, OnInit {
 
   /**
    * Test a single node configuration.
-   *
-   * :param nodeId: ID of the node to test
-   * :return: void
    */
   public testNode(nodeId: string): void {
     const node = this.nodeService.getNodeById(nodeId);
@@ -232,27 +248,35 @@ export class NodeEditorComponent implements OnDestroy, OnInit {
 
     console.log('Testing node:', node);
 
-    // Simulate node testing (in real implementation, this would call the backend)
-    const testResult = {
-      success: true,
-      message: 'Node configuration is valid',
-      data: node.config
-    };
-
-    if (testResult.success) {
-      this.updateNodeConfig(nodeId, 'testStatus', 'success');
-      this.updateNodeConfig(nodeId, 'lastTested', new Date().toISOString());
-    } else {
-      this.updateNodeConfig(nodeId, 'testStatus', 'error');
-      this.updateNodeConfig(nodeId, 'testError', testResult.message);
-    }
+    // Test node through API service
+    this.apiService.testNode({
+      id: node.id,
+      type: node.type,
+      config: node.config,
+      inputs: node.inputs,
+      outputs: node.outputs
+    }).subscribe({
+      next: (result) => {
+        console.log('Node test result:', result);
+        if (result.success) {
+          this.updateNodeConfig(nodeId, 'testStatus', 'success');
+          this.updateNodeConfig(nodeId, 'lastTested', new Date().toISOString());
+          this.updateNodeConfig(nodeId, 'testMessage', result.message);
+        } else {
+          this.updateNodeConfig(nodeId, 'testStatus', 'error');
+          this.updateNodeConfig(nodeId, 'testError', result.message);
+        }
+      },
+      error: (error) => {
+        console.error('Node test failed:', error);
+        this.updateNodeConfig(nodeId, 'testStatus', 'error');
+        this.updateNodeConfig(nodeId, 'testError', error);
+      }
+    });
   }
 
   /**
    * Check if a node can be tested.
-   *
-   * :param node: FlowNode to check
-   * :return: boolean
    */
   public canTestNode(node: FlowNode): boolean {
     if (node.content.displayOnly) return false;
@@ -269,9 +293,6 @@ export class NodeEditorComponent implements OnDestroy, OnInit {
 
   /**
    * Delete a node.
-   *
-   * :param nodeId: ID of the node to delete
-   * :return: void
    */
   public deleteNode(nodeId: string): void {
     if (confirm('Are you sure you want to delete this node?')) {
@@ -295,10 +316,21 @@ export class NodeEditorComponent implements OnDestroy, OnInit {
   }
 
   /**
+   * Clone a node.
+   */
+  public cloneNode(nodeId: string): void {
+    const node = this.nodeService.getNodeById(nodeId);
+    if (node) {
+      const newPosition = {
+        x: node.position.x + 50,
+        y: node.position.y + 50
+      };
+      this.nodeService.cloneNode(nodeId, newPosition);
+    }
+  }
+
+  /**
    * Format results for display.
-   *
-   * :param results: Results object
-   * :return: string formatted results
    */
   public formatResults(results: any): string {
     if (typeof results === 'object') {
@@ -309,9 +341,6 @@ export class NodeEditorComponent implements OnDestroy, OnInit {
 
   /**
    * Check which input ports can be connected to an output port.
-   *
-   * :param outputId: ID of the output port
-   * :return: Array of input port IDs
    */
   public canConnectTo(outputId: string): string[] {
     const outputNode = this.currentNodes.find(node =>
@@ -330,20 +359,58 @@ export class NodeEditorComponent implements OnDestroy, OnInit {
   }
 
   /**
+   * Toggle status panel visibility.
+   */
+  public toggleStatusPanel(): void {
+    this.showStatusPanel = !this.showStatusPanel;
+  }
+
+  /**
+   * Get pipeline statistics.
+   */
+  public getPipelineStats(): any {
+    return {
+      totalNodes: this.currentNodes.length,
+      totalConnections: this.connections.length,
+      readyNodes: this.currentNodes.filter(node => this.getNodeStatus(node)?.type === 'ready').length,
+      errorNodes: this.currentNodes.filter(node => this.getNodeStatus(node)?.type === 'error').length,
+      warningNodes: this.currentNodes.filter(node => this.getNodeStatus(node)?.type === 'warning').length
+    };
+  }
+
+  /**
+   * Export pipeline as JSON.
+   */
+  public exportPipeline(): void {
+    const pipeline = this.apiService.createPipelineDefinition(this.currentNodes, this.connections);
+    const jsonString = JSON.stringify(pipeline, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    this.apiService.downloadFile(blob, `pipeline_${Date.now()}.json`);
+  }
+
+  /**
    * Validate pipeline and update status.
-   *
-   * :return: void
    */
   private validatePipeline(): void {
-    const validation = this.pipelineService.validatePipeline();
-    this.pipelineValid = validation.isValid;
+    if (this.currentNodes.length > 0) {
+      const pipeline = this.apiService.createPipelineDefinition(this.currentNodes, this.connections);
+      this.apiService.validatePipeline(pipeline).subscribe({
+        next: (result) => {
+          this.pipelineValid = result.isValid;
+        },
+        error: () => {
+          // Fallback to local validation
+          const validation = this.pipelineService.validatePipeline();
+          this.pipelineValid = validation.isValid;
+        }
+      });
+    } else {
+      this.pipelineValid = false;
+    }
   }
 
   /**
    * Check if a connection is valid.
-   *
-   * :param connection: Connection to validate
-   * :return: boolean
    */
   private isValidConnection(connection: Connection): boolean {
     const fromNode = this.currentNodes.find(node =>
@@ -366,9 +433,6 @@ export class NodeEditorComponent implements OnDestroy, OnInit {
 
   /**
    * Extract node ID from port ID.
-   *
-   * :param portId: Port ID
-   * :return: string node ID
    */
   private extractNodeIdFromPortId(portId: string): string {
     const parts = portId.split('-');
@@ -377,12 +441,26 @@ export class NodeEditorComponent implements OnDestroy, OnInit {
 
   /**
    * Clear all nodes and connections.
-   *
-   * :return: void
    */
   public clearAll(): void {
-    this.nodeService.clearAllNodes();
-    this.mappingService.connectionObserver$.next([]);
-    this.selectedNodeId = null;
+    if (confirm('Are you sure you want to clear everything?')) {
+      this.nodeService.clearAllNodes();
+      this.mappingService.connectionObserver$.next([]);
+      this.selectedNodeId = null;
+    }
+  }
+
+  /**
+   * Fit canvas to screen.
+   */
+  public fitToScreen(): void {
+    this.fCanvas()?.fitToScreen(PointExtensions.initialize(50, 50), true);
+  }
+
+  /**
+   * Center the canvas view.
+   */
+  public centerView(): void {
+    this.fCanvas()?.resetZoom();
   }
 }

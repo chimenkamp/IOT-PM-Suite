@@ -1,11 +1,12 @@
-// src/app/components/mapping-toolbar/mapping-toolbar.component.ts
+// src/app/components/mapping-toolbar/mapping-toolbar.component.ts - Complete Integration
 
 import { Component, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MappingService } from '../../services/mapping.service';
 import { NodeService } from '../../services/node.service';
-import { PipelineService } from '../../services/pipeline.service';
+import { PipelineService, ValidationResult } from '../../services/pipeline.service';
+import { ApiService, ValidationResponse } from '../../services/api.service';
 
 @Component({
   selector: 'app-mapping-toolbar',
@@ -83,52 +84,49 @@ import { PipelineService } from '../../services/pipeline.service';
             </button>
           </div>
 
+          <!-- Pipeline Statistics -->
+          <div class="toolbar-section" *ngIf="hasContent()">
+            <h3>Pipeline Statistics</h3>
+            <div class="stats-grid">
+              <div class="stat-item">
+                <span class="stat-label">Nodes:</span>
+                <span class="stat-value">{{ pipelineStats.nodes }}</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Connections:</span>
+                <span class="stat-value">{{ pipelineStats.connections }}</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Data Sources:</span>
+                <span class="stat-value">{{ pipelineStats.dataSources }}</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Outputs:</span>
+                <span class="stat-value">{{ pipelineStats.outputs }}</span>
+              </div>
+            </div>
+          </div>
 
-      <!-- Pipeline Statistics -->
-      <div class="toolbar-section" *ngIf="hasContent()">
-        <h3>Pipeline Statistics</h3>
-        <div class="stats-grid">
-          <div class="stat-item">
-            <span class="stat-label">Nodes:</span>
-            <span class="stat-value">{{ pipelineStats.nodes }}</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-label">Connections:</span>
-            <span class="stat-value">{{ pipelineStats.connections }}</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-label">Data Sources:</span>
-            <span class="stat-value">{{ pipelineStats.dataSources }}</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-label">Outputs:</span>
-            <span class="stat-value">{{ pipelineStats.outputs }}</span>
+          <!-- Server Connection Status -->
+          <div class="toolbar-section">
+            <h3>Server Status</h3>
+            <div class="server-status">
+              <div class="status-indicator" [class]="serverStatus.type">
+                <span class="status-dot"></span>
+                <span class="status-text">{{ serverStatus.message }}</span>
+              </div>
+              <button
+                class="toolbar-button test-connection-button"
+                (click)="testServerConnection()"
+                [disabled]="isTestingConnection">
+                <span class="button-icon">🔌</span>
+                {{ isTestingConnection ? 'Testing...' : 'Test Connection' }}
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- Server Connection Status -->
-      <div class="toolbar-section">
-        <h3>Server Status</h3>
-        <div class="server-status">
-          <div class="status-indicator" [class]="serverStatus.type">
-            <span class="status-dot"></span>
-            <span class="status-text">{{ serverStatus.message }}</span>
-          </div>
-          <button
-            class="toolbar-button test-connection-button"
-            (click)="testServerConnection()"
-            [disabled]="isTestingConnection">
-            <span class="button-icon">🔌</span>
-            {{ isTestingConnection ? 'Testing...' : 'Test Connection' }}
-          </button>
-        </div>
-      </div>
-
-
-        </div>
-      </div>
-      <!-- END OF COLLAPSABLE CONTENT -->
       <!-- Hidden file inputs -->
       <input
         #datasetInput
@@ -281,16 +279,18 @@ export class MappingToolbarComponent {
     message: 'Not connected to backend server'
   };
 
-  validationResult = {
+  validationResult: ValidationResponse = {
     isValid: false,
-    errors: [] as string[],
-    warnings: [] as string[]
+    errors: [],
+    warnings: [],
+    validatedAt: ''
   };
 
   constructor(
     private mappingService: MappingService,
     private nodeService: NodeService,
-    private pipelineService: PipelineService
+    private pipelineService: PipelineService,
+    private apiService: ApiService
   ) {
     this.updateStats();
 
@@ -302,12 +302,18 @@ export class MappingToolbarComponent {
     this.mappingService.connectionObserver$.subscribe(() => {
       this.updateStats();
     });
+
+    // Monitor backend connection
+    this.apiService.connectionStatus$.subscribe(isConnected => {
+      this.serverStatus = {
+        type: isConnected ? 'connected' : 'disconnected',
+        message: isConnected ? 'Connected to BROOM backend' : 'Not connected to backend server'
+      };
+    });
   }
 
   /**
    * Toggle the Pipeline Operations section.
-   *
-   * :return: void
    */
   togglePipelineOperations(): void {
     this.pipelineOperationsCollapsed = !this.pipelineOperationsCollapsed;
@@ -315,8 +321,6 @@ export class MappingToolbarComponent {
 
   /**
    * Check if pipeline can be executed (has nodes and connections).
-   *
-   * :return: boolean
    */
   canExecutePipeline(): boolean {
     const nodes = this.nodeService.getAllNodes();
@@ -326,8 +330,6 @@ export class MappingToolbarComponent {
 
   /**
    * Execute the current pipeline.
-   *
-   * :return: void
    */
   executePipeline(): void {
     if (!this.canExecutePipeline()) {
@@ -336,22 +338,33 @@ export class MappingToolbarComponent {
     }
 
     try {
-      const pipeline = this.pipelineService.createPipelineDefinition();
+      const nodes = this.nodeService.getAllNodes();
+      const connections = this.mappingService.connectionObserver$.getValue();
+      const pipeline = this.apiService.createPipelineDefinition(nodes, connections);
+
       console.log('Executing pipeline:', pipeline);
 
       this.showStatus('Pipeline execution started...', 'info');
 
-      // Here you would send the pipeline to the backend for execution
-      this.pipelineService.executePipeline(pipeline)
-        .then(result => {
+      // Execute pipeline through API service
+      this.apiService.executePipeline(pipeline).subscribe({
+        next: (result) => {
           console.log('Pipeline execution completed:', result);
-          this.showStatus('Pipeline executed successfully!', 'success');
-          // Handle execution results
-        })
-        .catch(error => {
+          if (result.success) {
+            this.showStatus('Pipeline executed successfully!', 'success');
+            // Handle execution results
+            if (result.results) {
+              console.log('Pipeline results:', result.results);
+            }
+          } else {
+            this.showStatus('Pipeline execution failed: ' + (result.errors?.join(', ') || 'Unknown error'), 'error');
+          }
+        },
+        error: (error) => {
           console.error('Pipeline execution failed:', error);
-          this.showStatus('Pipeline execution failed: ' + error.message, 'error');
-        });
+          this.showStatus('Pipeline execution failed: ' + error, 'error');
+        }
+      });
     } catch (error) {
       this.showStatus('Failed to create pipeline definition: ' + error, 'error');
     }
@@ -359,29 +372,40 @@ export class MappingToolbarComponent {
 
   /**
    * Validate the current pipeline for correctness.
-   *
-   * :return: void
    */
   validatePipeline(): void {
-    const validationResult = this.pipelineService.validatePipeline();
+    const nodes = this.nodeService.getAllNodes();
+    const connections = this.mappingService.connectionObserver$.getValue();
+    const pipeline = this.apiService.createPipelineDefinition(nodes, connections);
 
-    if (validationResult.isValid) {
-      this.showStatus('Pipeline is valid and ready for execution!', 'success');
-    } else {
-      const errorMessage = 'Pipeline validation failed:\n' +
-        validationResult.errors.join('\n') +
-        (validationResult.warnings.length > 0 ? '\n\nWarnings:\n' + validationResult.warnings.join('\n') : '');
-      this.showStatus(errorMessage, 'error');
-    }
+    this.apiService.validatePipeline(pipeline).subscribe({
+      next: (result) => {
+        if (result.isValid) {
+          this.showStatus('Pipeline is valid and ready for execution!', 'success');
+        } else {
+          const errorMessage = 'Pipeline validation failed:\n' +
+            result.errors.join('\n') +
+            (result.warnings.length > 0 ? '\n\nWarnings:\n' + result.warnings.join('\n') : '');
+          this.showStatus(errorMessage, 'error');
+        }
 
-    // Update validation result for use in save dialog
-    this.validationResult = validationResult;
+        // Update validation result for use in save dialog
+        this.validationResult = result;
+      },
+      error: (error) => {
+        this.showStatus('Pipeline validation failed: ' + error, 'error');
+        this.validationResult = {
+          isValid: false,
+          errors: [error],
+          warnings: [],
+          validatedAt: new Date().toISOString()
+        };
+      }
+    });
   }
 
   /**
    * Check if there's content to save/clear.
-   *
-   * :return: boolean
    */
   hasContent(): boolean {
     return this.pipelineStats.nodes > 0 || this.pipelineStats.connections > 0;
@@ -389,8 +413,6 @@ export class MappingToolbarComponent {
 
   /**
    * Update pipeline statistics.
-   *
-   * :return: void
    */
   private updateStats(): void {
     const nodes = this.nodeService.getAllNodes();
@@ -404,14 +426,32 @@ export class MappingToolbarComponent {
       outputs: nodes.filter(n => ['table-output', 'export-ocel', 'ocpm-discovery'].includes(n.type)).length
     };
 
-    // Update validation
-    this.validationResult = this.pipelineService.validatePipeline();
+    // Update validation using API if we have nodes
+    if (nodes.length > 0) {
+      const pipeline = this.apiService.createPipelineDefinition(nodes, connections);
+      this.apiService.validatePipeline(pipeline).subscribe({
+        next: (result) => {
+          this.validationResult = result;
+        },
+        error: () => {
+          // Fallback to local validation if API fails
+          const resTemp: any = (this.pipelineService.validatePipeline() as any);
+          resTemp.validatedAt = new Date().toISOString();
+          this.validationResult = resTemp;
+        }
+      });
+    } else {
+      this.validationResult = {
+        isValid: false,
+        errors: ['Pipeline must contain at least one node'],
+        warnings: [],
+        validatedAt: new Date().toISOString()
+      };
+    }
   }
 
   /**
    * Trigger dataset file input.
-   *
-   * :return: void
    */
   triggerDatasetInput(): void {
     this.datasetInput.nativeElement.click();
@@ -419,8 +459,6 @@ export class MappingToolbarComponent {
 
   /**
    * Trigger pipeline file input.
-   *
-   * :return: void
    */
   triggerPipelineInput(): void {
     this.pipelineInput.nativeElement.click();
@@ -428,9 +466,6 @@ export class MappingToolbarComponent {
 
   /**
    * Handle dataset file selection.
-   *
-   * :param event: File input change event
-   * :return: void
    */
   onDatasetSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
@@ -444,9 +479,6 @@ export class MappingToolbarComponent {
 
   /**
    * Handle pipeline file selection.
-   *
-   * :param event: File input change event
-   * :return: void
    */
   onPipelineSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
@@ -465,33 +497,33 @@ export class MappingToolbarComponent {
 
   /**
    * Upload dataset to server.
-   *
-   * :param file: File to upload
-   * :return: void
    */
   private async uploadDataset(file: File): Promise<void> {
     try {
       this.showStatus('Uploading dataset...', 'info');
 
-      // Create FormData for file upload
-      const formData = new FormData();
-      formData.append('dataset', file);
-      formData.append('fileName', file.name);
-      formData.append('fileType', this.getFileType(file.name));
+      const fileType = this.apiService.getFileTypeFromName(file.name);
 
-      // TODO: Implement actual upload to backend
-      // await this.pipelineService.uploadDataset(formData);
+      this.apiService.uploadDataset(file, fileType).subscribe({
+        next: (result) => {
+          console.log('Dataset upload result:', result);
+          if (result.success) {
+            this.showStatus(`Dataset "${file.name}" uploaded successfully!`, 'success');
 
-      // Simulate upload for now
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      this.showStatus(`Dataset "${file.name}" uploaded successfully!`, 'success');
-
-      // Update server status
-      this.serverStatus = {
-        type: 'connected',
-        message: `Dataset "${file.name}" available on server`
-      };
+            // Update server status
+            this.serverStatus = {
+              type: 'connected',
+              message: `Dataset "${file.name}" available on server`
+            };
+          } else {
+            this.showStatus('Failed to upload dataset', 'error');
+          }
+        },
+        error: (error) => {
+          console.error('Dataset upload error:', error);
+          this.showStatus('Failed to upload dataset: ' + error, 'error');
+        }
+      });
 
     } catch (error) {
       this.showStatus('Failed to upload dataset: ' + error, 'error');
@@ -500,9 +532,6 @@ export class MappingToolbarComponent {
 
   /**
    * Load pipeline from file.
-   *
-   * :param file: Pipeline file to load
-   * :return: void
    */
   private async loadPipeline(file: File): Promise<void> {
     try {
@@ -521,8 +550,6 @@ export class MappingToolbarComponent {
 
   /**
    * Open the save dialog.
-   *
-   * :return: void
    */
   openSaveDialog(): void {
     if (!this.hasContent()) return;
@@ -536,8 +563,6 @@ export class MappingToolbarComponent {
 
   /**
    * Close the save dialog.
-   *
-   * :return: void
    */
   closeSaveDialog(): void {
     this.showSaveDialog = false;
@@ -546,14 +571,14 @@ export class MappingToolbarComponent {
 
   /**
    * Save the pipeline definition.
-   *
-   * :return: void
    */
   savePipeline(): void {
     if (!this.saveForm.name.trim() || !this.validationResult.isValid) return;
 
     try {
-      const pipelineDefinition = this.pipelineService.createPipelineDefinition();
+      const nodes = this.nodeService.getAllNodes();
+      const connections = this.mappingService.connectionObserver$.getValue();
+      const pipelineDefinition = this.apiService.createPipelineDefinition(nodes, connections);
 
       // Update metadata
       pipelineDefinition.name = this.saveForm.name.trim();
@@ -564,14 +589,7 @@ export class MappingToolbarComponent {
       const jsonString = JSON.stringify(pipelineDefinition, null, 2);
       const blob = new Blob([jsonString], { type: 'application/json' });
 
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${this.saveForm.name.replace(/[^a-zA-Z0-9]/g, '_')}.json`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      this.apiService.downloadFile(blob, `${this.saveForm.name.replace(/[^a-zA-Z0-9]/g, '_')}.json`);
 
       this.showStatus('Pipeline definition saved successfully!', 'success');
       this.closeSaveDialog();
@@ -583,8 +601,6 @@ export class MappingToolbarComponent {
 
   /**
    * Clear the entire pipeline.
-   *
-   * :return: void
    */
   clearPipeline(): void {
     if (!this.hasContent()) return;
@@ -604,25 +620,33 @@ export class MappingToolbarComponent {
 
   /**
    * Test connection to backend server.
-   *
-   * :return: void
    */
   async testServerConnection(): Promise<void> {
     this.isTestingConnection = true;
 
     try {
-      // TODO: Implement actual server connection test
-      // await this.pipelineService.testConnection();
+      this.apiService.healthCheck().subscribe({
+        next: (result) => {
+          console.log('Health check result:', result);
+          this.serverStatus = {
+            type: 'connected',
+            message: 'Connected to BROOM backend server'
+          };
 
-      // Simulate connection test
-      await new Promise(resolve => setTimeout(resolve, 1500));
+          this.showStatus('Server connection successful!', 'success');
+          this.isTestingConnection = false;
+        },
+        error: (error) => {
+          console.error('Health check failed:', error);
+          this.serverStatus = {
+            type: 'error',
+            message: 'Failed to connect to backend server'
+          };
 
-      this.serverStatus = {
-        type: 'connected',
-        message: 'Connected to BROOM backend server'
-      };
-
-      this.showStatus('Server connection successful!', 'success');
+          this.showStatus('Server connection failed: ' + error, 'error');
+          this.isTestingConnection = false;
+        }
+      });
 
     } catch (error) {
       this.serverStatus = {
@@ -631,36 +655,12 @@ export class MappingToolbarComponent {
       };
 
       this.showStatus('Server connection failed: ' + error, 'error');
-    } finally {
       this.isTestingConnection = false;
     }
   }
 
   /**
-   * Get file type from filename.
-   *
-   * :param filename: Name of the file
-   * :return: string file type
-   */
-  private getFileType(filename: string): string {
-    const extension = filename.toLowerCase().split('.').pop();
-    const typeMap: Record<string, string> = {
-      'csv': 'CSV',
-      'json': 'JSON',
-      'xml': 'XML',
-      'xes': 'XES',
-      'yaml': 'YAML',
-      'yml': 'YAML'
-    };
-    return typeMap[extension || ''] || 'UNKNOWN';
-  }
-
-  /**
    * Show a status message.
-   *
-   * :param message: Message to show
-   * :param type: Type of message (success, error, info)
-   * :return: void
    */
   private showStatus(message: string, type: string): void {
     this.statusMessage = message;
@@ -674,8 +674,6 @@ export class MappingToolbarComponent {
 
   /**
    * Clear the status message.
-   *
-   * :return: void
    */
   private clearStatus(): void {
     this.statusMessage = '';

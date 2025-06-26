@@ -1,4 +1,4 @@
-// src/app/app.config.ts
+// src/app/app.config.ts - Complete Application Configuration
 
 import { ApplicationConfig, importProvidersFrom } from '@angular/core';
 import { provideRouter } from '@angular/router';
@@ -10,6 +10,7 @@ import { routes } from './app.routes';
 import { NodeService } from './services/node.service';
 import { MappingService } from './services/mapping.service';
 import { PipelineService } from './services/pipeline.service';
+import { ApiService } from './services/api.service';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -18,6 +19,7 @@ export const appConfig: ApplicationConfig = {
     importProvidersFrom(BrowserAnimationsModule, FFlowModule),
     NodeService,
     MappingService,
-    PipelineService
+    PipelineService,
+    ApiService
   ]
 };
