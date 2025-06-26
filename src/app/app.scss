@@ -1,3 +1,5 @@
+// src/app/app.scss
+
 :host {
   display: block;
   height: 100vh;
@@ -10,11 +12,12 @@
   background-color: #2e3440; /* Nord polar night */
 }
 
+// ============ SIDEBAR STYLING ============
 .sidebar {
-  width: 320px;
-  min-width: 320px;
-  max-width: 400px;
-  background-color: #3b4252; /* Nord polar night */
+  width: 350px;
+  min-width: 350px;
+  max-width: 450px;
+  background-color: #3b4252;
   border-right: 1px solid #434c5e;
   display: flex;
   flex-direction: column;
@@ -28,19 +31,22 @@
 }
 
 .sidebar-header h2 {
-  color: #eceff4; /* Nord snow storm */
+  color: #eceff4;
   margin: 0 0 0.5rem 0;
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   font-weight: 600;
+  line-height: 1.2;
 }
 
 .sidebar-header p {
   color: #d8dee9;
   margin: 0;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   opacity: 0.8;
+  line-height: 1.3;
 }
 
+// ============ NODE LIBRARY ============
 .node-library {
   flex: 1;
   overflow-y: auto;
@@ -81,7 +87,7 @@
 .category-header h3 {
   color: #eceff4;
   margin: 0;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-weight: 600;
   flex: 1;
 }
@@ -109,7 +115,7 @@
   border-radius: 8px;
   padding: 0.6rem 0.8rem;
   color: #eceff4;
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -129,6 +135,7 @@
   flex: 1;
   text-align: center;
   font-weight: 500;
+  line-height: 1.2;
 }
 
 .input-port, .output-port {
@@ -155,24 +162,29 @@
   border: 2px solid #2e3440;
 }
 
+// ============ SIDEBAR FOOTER ============
 .sidebar-footer {
   padding: 1rem;
   border-top: 1px solid #434c5e;
   background-color: #2e3440;
 }
 
+.port-legend {
+  margin-bottom: 1rem;
+}
+
 .port-legend h4 {
   color: #eceff4;
   margin: 0 0 0.75rem 0;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 600;
 }
 
 .legend-item {
   display: flex;
   align-items: center;
-  margin-bottom: 0.5rem;
-  font-size: 0.75rem;
+  margin-bottom: 0.4rem;
+  font-size: 0.7rem;
   color: #d8dee9;
 }
 
@@ -183,6 +195,65 @@
   border-width: 1px;
 }
 
+// ============ PIPELINE CONTROLS ============
+.pipeline-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.control-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #eceff4;
+  min-height: 36px;
+}
+
+.execute-button {
+  background-color: #a3be8c;
+  color: #2e3440;
+  border: 2px solid #a3be8c;
+  width: 100%;
+  height: 100%;
+  &:hover:not(:disabled) {
+    background-color: #b8d4a3;
+    border-color: #b8d4a3;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(163, 190, 140, 0.3);
+  }
+
+  &:disabled {
+    background-color: #6b7280;
+    border-color: #6b7280;
+    color: #9ca3af;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+}
+
+.validate-button {
+  background-color: #5e81ac;
+  border: 2px solid #5e81ac;
+
+  &:hover:not(:disabled) {
+    background-color: #81a1c1;
+    border-color: #81a1c1;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(94, 129, 172, 0.3);
+  }
+}
+
+// ============ EDITOR CONTAINER ============
 .editor-container {
   flex: 1;
   position: relative;
@@ -209,7 +280,7 @@
   pointer-events: none;
 }
 
-/* Nord color classes */
+// ============ NORD COLOR CLASSES ============
 .nord-blue { background-color: #5e81ac; }
 .nord-green { background-color: #a3be8c; }
 .nord-purple { background-color: #b48ead; }
@@ -218,7 +289,7 @@
 .nord-yellow { background-color: #ebcb8b; }
 .core-model { background-color: #88c0d0; }
 
-/* Node preview color variations */
+// ============ NODE PREVIEW COLOR VARIATIONS ============
 .node-preview-nord-blue {
   border-color: #5e81ac;
   background: linear-gradient(135deg, rgba(94, 129, 172, 0.1), rgba(94, 129, 172, 0.05));
@@ -254,33 +325,128 @@
   background: linear-gradient(135deg, rgba(136, 192, 208, 0.1), rgba(136, 192, 208, 0.05));
 }
 
-/* Hover effects for node previews */
-.node-preview-nord-blue:hover { background-color: rgba(94, 129, 172, 0.2); }
-.node-preview-nord-green:hover { background-color: rgba(163, 190, 140, 0.2); }
-.node-preview-nord-purple:hover { background-color: rgba(180, 142, 173, 0.2); }
-.node-preview-nord-red:hover { background-color: rgba(191, 97, 106, 0.2); }
-.node-preview-nord-orange:hover { background-color: rgba(208, 135, 112, 0.2); }
-.node-preview-nord-yellow:hover { background-color: rgba(235, 203, 139, 0.2); }
-.node-preview-core-model:hover { background-color: rgba(136, 192, 208, 0.2); }
+// ============ HOVER EFFECTS ============
+.node-preview-nord-blue:hover {
+  background-color: rgba(94, 129, 172, 0.2);
+  box-shadow: 0 4px 12px rgba(94, 129, 172, 0.15);
+}
+.node-preview-nord-green:hover {
+  background-color: rgba(163, 190, 140, 0.2);
+  box-shadow: 0 4px 12px rgba(163, 190, 140, 0.15);
+}
+.node-preview-nord-purple:hover {
+  background-color: rgba(180, 142, 173, 0.2);
+  box-shadow: 0 4px 12px rgba(180, 142, 173, 0.15);
+}
+.node-preview-nord-red:hover {
+  background-color: rgba(191, 97, 106, 0.2);
+  box-shadow: 0 4px 12px rgba(191, 97, 106, 0.15);
+}
+.node-preview-nord-orange:hover {
+  background-color: rgba(208, 135, 112, 0.2);
+  box-shadow: 0 4px 12px rgba(208, 135, 112, 0.15);
+}
+.node-preview-nord-yellow:hover {
+  background-color: rgba(235, 203, 139, 0.2);
+  box-shadow: 0 4px 12px rgba(235, 203, 139, 0.15);
+}
+.node-preview-core-model:hover {
+  background-color: rgba(136, 192, 208, 0.2);
+  box-shadow: 0 4px 12px rgba(136, 192, 208, 0.15);
+}
 
-/* Responsive design */
+// ============ SCROLLBAR STYLING ============
+.node-library::-webkit-scrollbar {
+  width: 6px;
+}
+
+.node-library::-webkit-scrollbar-track {
+  background: #3b4252;
+}
+
+.node-library::-webkit-scrollbar-thumb {
+  background: #4c566a;
+  border-radius: 3px;
+}
+
+.node-library::-webkit-scrollbar-thumb:hover {
+  background: #5e81ac;
+}
+
+// ============ RESPONSIVE DESIGN ============
+@media (max-width: 1400px) {
+  .sidebar {
+    width: 320px;
+    min-width: 320px;
+  }
+}
+
 @media (max-width: 1200px) {
   .sidebar {
-    width: 280px;
-    min-width: 280px;
+    width: 300px;
+    min-width: 300px;
+  }
+
+  .node-label {
+    font-size: 0.7rem;
   }
 }
 
 @media (max-width: 768px) {
+  .app-container {
+    flex-direction: column;
+  }
+
   .sidebar {
     width: 100%;
     max-width: 100%;
-    position: absolute;
+    height: 40vh;
+    position: relative;
     z-index: 1000;
-    height: 100%;
   }
 
-  .app-container {
-    flex-direction: column;
+  .editor-container {
+    height: 60vh;
+  }
+
+  .pipeline-controls {
+    flex-direction: row;
+  }
+
+  .control-button {
+    flex: 1;
+    font-size: 0.7rem;
+    padding: 0.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .sidebar-header {
+    padding: 1rem 0.75rem;
+  }
+
+  .sidebar-header h2 {
+    font-size: 1rem;
+  }
+
+  .sidebar-header p {
+    font-size: 0.75rem;
+  }
+
+  .category-header {
+    padding: 0.6rem 0.75rem;
+  }
+
+  .sidebar-footer {
+    padding: 0.75rem;
+  }
+
+  .node-preview {
+    padding: 0.5rem 0.6rem;
+    min-height: 32px;
+  }
+
+  .node-label {
+    font-size: 0.65rem;
   }
 }

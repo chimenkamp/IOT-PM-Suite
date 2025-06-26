@@ -1,3 +1,5 @@
+// src/app/services/node-definitions.ts
+
 export interface NodeHandle {
   id: string;
   color: string;
@@ -15,6 +17,16 @@ export interface NodeContent {
   configOptions?: string[];
   displayOnly?: boolean;
   status?: string;
+  hasFileUpload?: boolean;
+  hasMultipleInputs?: boolean;
+  inputFields?: Array<{
+    key: string;
+    label: string;
+    type: 'text' | 'select' | 'number' | 'checkbox';
+    options?: string[];
+    placeholder?: string;
+    required?: boolean;
+  }>;
 }
 
 export interface FlowNode {
@@ -24,6 +36,7 @@ export interface FlowNode {
   inputs: NodeHandle[];
   outputs: NodeHandle[];
   content: NodeContent;
+  config?: Record<string, any>;
 }
 
 export interface Position {
@@ -38,279 +51,273 @@ export interface NodeTemplate {
 }
 
 export const nodeDefinitions: Record<string, NodeTemplate> = {
-  // ============ INPUT/LOADING NODES ============
-  'file-loader': {
-      inputs: [],
-      outputs: [{ id: '', color: 'nord-blue', label: 'Raw Data' }],
-      content: {
-          title: 'File Loader',
-          description: 'Load XES/XML event logs',
-          hasInput: true,
-          inputPlaceholder: 'File path or URL',
-          hasSelect: true,
-          selectOptions: ['XES', 'CSV', 'YAML', 'JSON'],
-      }
-  },
-  'MQTT-connector': {
-      inputs: [],
-      outputs: [{ id: '', color: 'nord-blue', label: 'Raw Events' }],
-      content: {
-          title: 'Data Source',
-          description: 'Connect to MQTT broker for real-time data',
-          hasInput: true,
-          inputPlaceholder: 'MQTT Broker URL',
-      }
+  // ============ DATA INPUT & LOADING NODES ============
+  'read-file': {
+    inputs: [],
+    outputs: [{ id: '', color: 'nord-blue', label: 'Raw Data' }],
+    content: {
+      title: 'Read File',
+      description: 'Load data from CSV, XML, YAML or JSON files',
+      hasFileUpload: true,
+      inputFields: [
+        {
+          key: 'fileType',
+          label: 'File Type',
+          type: 'select',
+          options: ['CSV', 'XML', 'YAML', 'JSON', 'XES'],
+          required: true
+        },
+        {
+          key: 'encoding',
+          label: 'Encoding',
+          type: 'select',
+          options: ['UTF-8', 'ISO-8859-1', 'ASCII'],
+          required: false
+        }
+      ]
+    }
   },
 
-  // ============ PROCESSING NODES ============
-  'event-parser-process': {
-      inputs: [
-        { id: '', color: 'nord-yellow', label: 'ID' },
-        { id: '', color: 'nord-yellow', label: 'Type' },
-        { id: '', color: 'nord-yellow', label: 'Timestamp' },
-        { id: '', color: 'nord-yellow', label: 'Meta-Data' },
-        { id: '', color: 'nord-yellow', label: 'Activity' }
-      ],
-      outputs: [{ id: '', color: 'nord-green', label: 'Event' }],
-      content: {
-          title: 'Event Parser',
-          description: 'Parse raw XML events to structured data',
-      }
+  'mqtt-connector': {
+    inputs: [],
+    outputs: [{ id: '', color: 'nord-blue', label: 'Raw Data' }],
+    content: {
+      title: 'MQTT Connector',
+      description: 'Connect to MQTT sensor stream for real-time data',
+      inputFields: [
+        {
+          key: 'brokerUrl',
+          label: 'MQTT Broker URL',
+          type: 'text',
+          placeholder: 'mqtt://localhost:1883',
+          required: true
+        },
+        {
+          key: 'topic',
+          label: 'Topic',
+          type: 'text',
+          placeholder: 'sensors/+/data',
+          required: true
+        },
+        {
+          key: 'username',
+          label: 'Username',
+          type: 'text',
+          required: false
+        },
+        {
+          key: 'password',
+          label: 'Password',
+          type: 'text',
+          required: false
+        }
+      ]
+    }
   },
-  'event-parser-iot': {
-      inputs: [
-        { id: '', color: 'nord-yellow', label: 'ID' },
-        { id: '', color: 'nord-yellow', label: 'Type' },
-        { id: '', color: 'nord-yellow', label: 'Timestamp' },
-        { id: '', color: 'nord-yellow', label: 'Meta-Data' }
-      ],
-      outputs: [{ id: '', color: 'nord-green', label: 'Event' }],
-      content: {
-          title: 'Event Parser',
-          description: 'Parse raw XML events to structured data',
-      }
-  },
-  'attribute-selector': {
-      inputs: [{ id: '', color: 'nord-red', label: 'Series' }],
-      outputs: [{ id: '', color: 'nord-yellow', label: 'Attributes' }],
-      content: {
-          title: 'Attribute Selector',
-          description: 'Extract specific attributes from Series',
-          hasInput: true,
-          inputPlaceholder: 'Attribute key (e.g., concept:name)',
-      }
-  },
+
+  // ============ DATA PROCESSING NODES ============
   'column-selector': {
-      inputs: [{ id: '', color: 'nord-blue', label: 'Raw Data' }],
-      outputs: [{ id: '', color: 'nord-red', label: 'Series' }],
-      content: {
-          title: 'Column Selector',
-          description: 'Select a specific column from Raw Data',
-          hasInput: true,
-          inputPlaceholder: 'Column name: ',
-      }
+    inputs: [{ id: '', color: 'nord-blue', label: 'Raw Data' }],
+    outputs: [{ id: '', color: 'nord-red', label: 'Series' }],
+    content: {
+      title: 'Column Selector',
+      description: 'Takes Raw Data and converts specific column to Series',
+      inputFields: [
+        {
+          key: 'columnName',
+          label: 'Column Name',
+          type: 'text',
+          placeholder: 'Enter column name',
+          required: true
+        }
+      ]
+    }
   },
-  'data-mapper': {
-      inputs: [
-          { id: '', color: 'nord-yellow', label: 'Source Data' },
-          { id: '', color: 'nord-orange', label: 'Mapping Rules' }
-      ],
-      outputs: [{ id: '', color: 'nord-yellow', label: 'Mapped Data' }],
-      content: {
-          title: 'Data Mapper',
-          description: 'Apply mapping transformations',
-          hasInput: true,
-          inputPlaceholder: 'Mapping expression'
-      }
+
+  'attribute-selector': {
+    inputs: [{ id: '', color: 'nord-red', label: 'Series' }],
+    outputs: [{ id: '', color: 'nord-yellow', label: 'Attribute' }],
+    content: {
+      title: 'Attribute Selector',
+      description: 'Select attributes from Series data',
+      inputFields: [
+        {
+          key: 'attributeKey',
+          label: 'Attribute Key',
+          type: 'text',
+          placeholder: 'concept:name, time:timestamp, etc.',
+          required: true
+        },
+        {
+          key: 'defaultValue',
+          label: 'Default Value',
+          type: 'text',
+          placeholder: 'Value if attribute not found',
+          required: false
+        }
+      ]
+    }
   },
+
   'data-filter': {
-      inputs: [{ id: '', color: 'nord-red', label: 'Series' }],
-      outputs: [{ id: '', color: 'nord-red', label: 'Series' }],
-      content: {
-          title: 'Data Filter',
-          description: 'Filter data based on conditions',
-          hasInput: true,
-          inputPlaceholder: 'Filter condition'
-      }
+    inputs: [{ id: '', color: 'nord-red', label: 'Series' }],
+    outputs: [{ id: '', color: 'nord-red', label: 'Series' }],
+    content: {
+      title: 'Data Filter',
+      description: 'Apply conditions to filter Series data',
+      inputFields: [
+        {
+          key: 'condition',
+          label: 'Filter Condition',
+          type: 'text',
+          placeholder: 'value > 10, contains("text"), etc.',
+          required: true
+        },
+        {
+          key: 'operator',
+          label: 'Operator',
+          type: 'select',
+          options: ['>', '<', '>=', '<=', '==', '!=', 'contains', 'startswith', 'endswith'],
+          required: true
+        }
+      ]
+    }
+  },
+
+  'data-mapper': {
+    inputs: [{ id: '', color: 'nord-red', label: 'Series' }],
+    outputs: [{ id: '', color: 'nord-red', label: 'Series' }],
+    content: {
+      title: 'Data Mapper',
+      description: 'Apply mapping transformations to Series data',
+      inputFields: [
+        {
+          key: 'mappingType',
+          label: 'Mapping Type',
+          type: 'select',
+          options: ['Value Mapping', 'Expression', 'Format Conversion'],
+          required: true
+        },
+        {
+          key: 'expression',
+          label: 'Mapping Expression',
+          type: 'text',
+          placeholder: 'lambda x: x.upper(), {old: new}, etc.',
+          required: true
+        }
+      ]
+    }
   },
 
   // ============ CORE MODEL CREATION NODES ============
-  'object-creator': {
-      inputs: [
-          { id: '', color: 'nord-yellow', label: 'ID' },
-          { id: '', color: 'nord-yellow', label: 'Object Type' },
-          { id: '', color: 'nord-yellow', label: 'Meta Data' }
-      ],
-      outputs: [{ id: '', color: 'nord-purple', label: 'Object' }],
-      content: {
-          title: 'Object Creator',
-          description: 'Create CORE model objects',
-      }
-  },
-  'event-object-relation': {
-      inputs: [
-          { id: '', color: 'nord-green', label: 'Event' },
-          { id: '', color: 'nord-purple', label: 'Object' }
-      ],
-      outputs: [{ id: '', color: 'nord-orange', label: 'E-O Relationship' }],
-      content: {
-          title: 'Event-Object Relation',
-          description: 'Create event-object relationships',
-          hasSelect: true,
-          selectOptions: ['executes', 'involves', 'uses', 'creates'],
-          selectLabel: 'Relationship Type'
-      }
-  },
-  'event-event-relation': {
-      inputs: [
-          { id: '', color: 'nord-green', label: 'Source Event' },
-          { id: '', color: 'nord-green', label: 'Target Event' }
-      ],
-      outputs: [{ id: '', color: 'nord-orange', label: 'E-E Relationship' }],
-      content: {
-          title: 'Event-Event Relation',
-          description: 'Create event-event relationships',
-          hasSelect: true,
-          selectOptions: ['derived_from', 'correlates', 'precedes', 'triggers'],
-          selectLabel: 'Qualifier'
-      }
-  },
-
-  // ============ COLLECTION NODES ============
-  'objects-collection': {
-      inputs: [{ id: '', color: 'nord-purple', label: 'Objects' }],
-      outputs: [{ id: '', color: 'nord-purple', label: 'Objects Collection' }],
-      content: {
-          title: 'Objects Collection',
-          description: 'Collect and manage object instances',
-          displayOnly: true
-      }
-  },
-  'events-collection': {
-      inputs: [{ id: '', color: 'nord-green', label: 'Process Events' }],
-      outputs: [{ id: '', color: 'nord-green', label: 'Events Collection' }],
-      content: {
-          title: 'Process Events Collection',
-          description: 'Collect and manage process events',
-          displayOnly: true
-      }
-  },
-  'eo-relations-collection': {
-      inputs: [{ id: '', color: 'nord-orange', label: 'E-O Relations' }],
-      outputs: [{ id: '', color: 'nord-orange', label: 'E-O Collection' }],
-      content: {
-          title: 'Event-Object Relations',
-          description: 'Collect event-object relationships',
-          displayOnly: true
-      }
-  },
-  'ee-relations-collection': {
-      inputs: [{ id: '', color: 'nord-orange', label: 'E-E Relations' }],
-      outputs: [{ id: '', color: 'nord-orange', label: 'E-E Collection' }],
-      content: {
-          title: 'Event-Event Relations',
-          description: 'Collect event-event relationships',
-          displayOnly: true
-      }
-  },
-
-  // ============ OUTPUT NODES ============
-  'core-metamodel': {
-      inputs: [
-          { id: '', color: 'nord-purple', label: 'Objects' },
-          { id: '', color: 'nord-green', label: 'Process Events' },
-          { id: '', color: 'nord-red', label: 'Observations' },
-          { id: '', color: 'nord-orange', label: 'E-O Relations' },
-          { id: '', color: 'nord-orange', label: 'E-E Relations' }
-      ],
-      outputs: [{ id: '', color: 'core-model', label: 'CORE Metamodel' }],
-      content: {
-          title: 'CORE Metamodel',
-          description: 'Final CORE metamodel output',
-          displayOnly: true,
-          status: 'ready'
-      }
-  },
-  'summary-output': {
-      inputs: [{ id: '', color: 'core-model', label: 'CORE Metamodel' }],
-      outputs: [],
-      content: {
-          title: 'Summary Output',
-          description: 'Display metamodel summary statistics',
-          displayOnly: true
-      }
-  },
-  'table-output': {
-      inputs: [{ id: '', color: 'core-model', label: 'Table Data' }],
-      outputs: [],
-      content: {
-          title: 'Table Output',
-          description: 'Display data in tabular format',
-          displayOnly: true
-      }
-  },
-  'export-output': {
-      inputs: [{ id: '', color: 'core-model', label: 'CORE Metamodel' }],
-      outputs: [],
-      content: {
-          title: 'Export Output',
-          description: 'Export metamodel to file formats',
-          hasSelect: true,
-          selectOptions: ['JSON', 'XML', 'OCEL', 'PM4PY'],
-          selectLabel: 'Export Format'
-      }
-  },
-  'discover-OCEL-model': {
-    inputs: [{ id: '', color: 'core-model', label: 'OCEL Data' }],
-    outputs: [],
+  'iot-event': {
+    inputs: [
+      { id: '', color: 'nord-yellow', label: 'ID' },
+      { id: '', color: 'nord-yellow', label: 'Type' },
+      { id: '', color: 'nord-yellow', label: 'Timestamp' },
+      { id: '', color: 'nord-yellow', label: 'Metadata' }
+    ],
+    outputs: [{ id: '', color: 'nord-green', label: 'IoT Event' }],
     content: {
-        title: 'OCEL Model Discoverer',
-        description: 'Discover OCEL model from data',
-        hasInput: true,
-        inputPlaceholder: 'OCEL file path or URL'
+      title: 'IoT Event',
+      description: 'Create IoT events for CORE model from sensor data',
+      inputFields: [
+        {
+          key: 'eventType',
+          label: 'Default Event Type',
+          type: 'text',
+          placeholder: 'sensor_reading, measurement, etc.',
+          required: false
+        }
+      ]
     }
-},
+  },
+
+  'process-event': {
+    inputs: [
+      { id: '', color: 'nord-yellow', label: 'ID' },
+      { id: '', color: 'nord-yellow', label: 'Type' },
+      { id: '', color: 'nord-yellow', label: 'Timestamp' },
+      { id: '', color: 'nord-yellow', label: 'Metadata' },
+      { id: '', color: 'nord-yellow', label: 'Activity Label' }
+    ],
+    outputs: [{ id: '', color: 'nord-green', label: 'Process Event' }],
+    content: {
+      title: 'Process Event',
+      description: 'Create process events for CORE model',
+      inputFields: [
+        {
+          key: 'eventType',
+          label: 'Default Event Type',
+          type: 'text',
+          placeholder: 'activity_start, activity_complete, etc.',
+          required: false
+        }
+      ]
+    }
+  },
+
+  'object-creator': {
+    inputs: [
+      { id: '', color: 'nord-yellow', label: 'ID' },
+      { id: '', color: 'nord-yellow', label: 'Type' },
+      { id: '', color: 'nord-yellow', label: 'Class' },
+      { id: '', color: 'nord-yellow', label: 'Metadata' }
+    ],
+    outputs: [{ id: '', color: 'nord-purple', label: 'Object' }],
+    content: {
+      title: 'Object Creator',
+      description: 'Create objects with ID, Type, Class, and Metadata',
+      inputFields: [
+        {
+          key: 'defaultObjectClass',
+          label: 'Default Object Class',
+          type: 'select',
+          options: ['SENSOR', 'ACTUATOR', 'INFORMATION_SYSTEM', 'CASE_OBJECT', 'BUSINESS_OBJECT', 'RESOURCE'],
+          required: false
+        }
+      ]
+    }
+  },
 
   // ============ UTILITY NODES ============
-  'value-extractor': {
-      inputs: [{ id: '', color: 'nord-yellow', label: 'Data' }],
-      outputs: [{ id: '', color: 'nord-yellow', label: 'Extracted Value' }],
-      content: {
-          title: 'Value Extractor',
-          description: 'Extract specific values from data',
-          hasInput: true,
-          inputPlaceholder: 'XPath or JSONPath expression'
-      }
+  'unique-id-generator': {
+    inputs: [],
+    outputs: [{ id: '', color: 'nord-yellow', label: 'ID' }],
+    content: {
+      title: 'Unique ID Generator',
+      description: 'Generate unique identifiers for events and objects',
+      inputFields: [
+        {
+          key: 'idType',
+          label: 'ID Type',
+          type: 'select',
+          options: ['UUID4', 'UUID1', 'Incremental', 'Timestamp-based'],
+          required: true
+        },
+        {
+          key: 'prefix',
+          label: 'ID Prefix',
+          type: 'text',
+          placeholder: 'Optional prefix for IDs',
+          required: false
+        }
+      ]
+    }
   },
-  'timestamp-parser': {
-      inputs: [{ id: '', color: 'nord-yellow', label: 'Timestamp String' }],
-      outputs: [{ id: '', color: 'nord-yellow', label: 'DateTime' }],
-      content: {
-          title: 'Timestamp Parser',
-          description: 'Parse timestamp strings to datetime objects',
-          hasInput: true,
-          inputPlaceholder: 'Date format (e.g., %Y-%m-%d %H:%M:%S)'
-      }
-  },
-  'uuid-generator': {
-      inputs: [],
-      outputs: [{ id: '', color: 'nord-yellow', label: 'UUID' }],
-      content: {
-          title: 'UUID Generator',
-          description: 'Generate unique identifiers',
-          hasSelect: true,
-          selectOptions: ['uuid4', 'uuid1', 'incremental'],
-          selectLabel: 'ID Type'
-      }
-  },
-  'object-type-provider': {
-      inputs: [],
-      outputs: [{ id: '', color: 'nord-yellow', label: 'Object Type' }],
-      content: {
-          title: 'Object Type Provider',
-          description: 'Provide object type definitions',
-          hasSelect: true,
-          selectOptions: [
+
+  'object-class-selector': {
+    inputs: [],
+    outputs: [{ id: '', color: 'nord-yellow', label: 'Class' }],
+    content: {
+      title: 'Object Class Selector',
+      description: 'Select object class for CORE model objects',
+      inputFields: [
+        {
+          key: 'objectClass',
+          label: 'Object Class',
+          type: 'select',
+          options: [
             'SENSOR',
             'ACTUATOR',
             'INFORMATION_SYSTEM',
@@ -321,9 +328,139 @@ export const nodeDefinitions: Record<string, NodeTemplate> = {
             'PROCESS',
             'ACTIVITY',
             'SUBPROCESS',
-            'RESOURCE',
+            'RESOURCE'
           ],
-          selectLabel: 'Object Class'
-      }
+          required: true
+        }
+      ]
+    }
   },
+
+  // ============ RELATIONSHIP NODES ============
+  'event-object-relation': {
+    inputs: [
+      { id: '', color: 'nord-green', label: 'Event' },
+      { id: '', color: 'nord-purple', label: 'Object' }
+    ],
+    outputs: [{ id: '', color: 'nord-orange', label: 'E-O Relationship' }],
+    content: {
+      title: 'Event-Object Relationship',
+      description: 'Create relationships between events and objects',
+      inputFields: [
+        {
+          key: 'relationshipType',
+          label: 'Relationship Type',
+          type: 'select',
+          options: ['executes', 'involves', 'uses', 'creates', 'modifies', 'reads'],
+          required: true
+        }
+      ]
+    }
+  },
+
+  'event-event-relation': {
+    inputs: [
+      { id: '', color: 'nord-green', label: 'Source Event' },
+      { id: '', color: 'nord-green', label: 'Target Event' }
+    ],
+    outputs: [{ id: '', color: 'nord-orange', label: 'E-E Relationship' }],
+    content: {
+      title: 'Event-Event Relationship',
+      description: 'Create derivation relationships between events',
+      inputFields: [
+        {
+          key: 'qualifier',
+          label: 'Relationship Qualifier',
+          type: 'select',
+          options: ['derived_from', 'correlates', 'precedes', 'triggers', 'aggregates'],
+          required: true
+        }
+      ]
+    }
+  },
+
+  // ============ CORE MODEL CONSTRUCTION ============
+  'core-metamodel': {
+    inputs: [
+      { id: '', color: 'nord-green', label: 'Process Events' },
+      { id: '', color: 'nord-green', label: 'IoT Events' },
+      { id: '', color: 'nord-orange', label: 'Relationships' }
+    ],
+    outputs: [{ id: '', color: 'core-model', label: 'CORE Metamodel' }],
+    content: {
+      title: 'CORE Metamodel',
+      description: 'Construct the final CORE metamodel from events and relationships',
+      displayOnly: true,
+      status: 'Ready to construct'
+    }
+  },
+
+  // ============ OUTPUT & EXPORT NODES ============
+  'table-output': {
+    inputs: [{ id: '', color: 'core-model', label: 'Data' }],
+    outputs: [],
+    content: {
+      title: 'Table Output',
+      description: 'Display data in tabular format',
+      displayOnly: true,
+      inputFields: [
+        {
+          key: 'maxRows',
+          label: 'Max Rows to Display',
+          type: 'number',
+          placeholder: '100',
+          required: false
+        }
+      ]
+    }
+  },
+
+  'export-ocel': {
+    inputs: [{ id: '', color: 'core-model', label: 'CORE Metamodel' }],
+    outputs: [],
+    content: {
+      title: 'Export to OCEL',
+      description: 'Export CORE metamodel to OCEL format',
+      inputFields: [
+        {
+          key: 'format',
+          label: 'Export Format',
+          type: 'select',
+          options: ['OCEL 2.0 JSON', 'OCEL 2.0 XML'],
+          required: true
+        },
+        {
+          key: 'filename',
+          label: 'Filename',
+          type: 'text',
+          placeholder: 'export.ocel',
+          required: false
+        }
+      ]
+    }
+  },
+
+  'ocpm-discovery': {
+    inputs: [{ id: '', color: 'core-model', label: 'CORE Metamodel' }],
+    outputs: [],
+    content: {
+      title: 'OCPM Model Discovery',
+      description: 'Discover object-centric process model in browser',
+      inputFields: [
+        {
+          key: 'algorithm',
+          label: 'Discovery Algorithm',
+          type: 'select',
+          options: ['Directly-Follows Graph', 'Petri Net', 'BPMN'],
+          required: true
+        },
+        {
+          key: 'filterNoise',
+          label: 'Filter Noise',
+          type: 'checkbox',
+          required: false
+        }
+      ]
+    }
+  }
 };

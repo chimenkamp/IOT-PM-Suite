@@ -1,3 +1,5 @@
+// src/app/components/node-editor/node-editor.component.html
+
 <f-flow fDraggable (fLoaded)="onLoaded()" (fCreateConnection)="onCreateConnection($event)">
   <f-canvas fZoom (fCanvasChange)="onCanvasChanged($event)">
     <f-connection-for-create fBehavior="floating"></f-connection-for-create>
@@ -18,6 +20,8 @@
         fNode
         fDragHandle
         [fNodePosition]="{ x: node.position.x, y: node.position.y }"
+        [class.selected]="selectedNodeId === node.id"
+        (click)="selectNode(node.id)"
       >
         <!-- Input ports -->
         <div class="ports-container inputs" *ngIf="node.inputs.length > 0">
@@ -27,9 +31,128 @@
               [fInputId]="input.id"
               [fInputMultiple]="true"
               [class]="'port input-port ' + input.color"
-              [title]="input.label"
+              [title]="input.label + ' (' + getDataTypeFromColor(input.color) + ')'"
             ></div>
             <span class="port-label">{{ input.label }}</span>
+          </div>
+        </div>
+
+        <!-- Node Header -->
+        <div class="node-header">
+          <h4 class="node-title">{{ node.content.title }}</h4>
+          <p class="node-description" *ngIf="node.content.description">{{ node.content.description }}</p>
+
+          <!-- Status indicator for executable nodes -->
+          <div class="node-status" *ngIf="getNodeStatus(node) as status">
+            <span [class]="'status-indicator ' + status.type">{{ status.message }}</span>
+          </div>
+        </div>
+
+        <!-- Node Configuration -->
+        <div class="node-body">
+          <!-- File Upload for file-based nodes -->
+          <div class="config-section" *ngIf="node.content.hasFileUpload">
+            <label class="file-upload-label">
+              <input
+                type="file"
+                (change)="onFileSelected($event, node.id)"
+                [accept]="getFileAcceptTypes(node.type)"
+                class="file-input">
+              <span class="file-upload-button">📁 Choose File</span>
+            </label>
+            <div class="file-info" *ngIf="node.config && node.config?.['fileName']">
+              <small>{{ node.config['fileName'] }}</small>
+            </div>
+          </div>
+
+          <!-- Configuration Fields -->
+          <div class="config-section" *ngIf="node.content.inputFields && !node.content.displayOnly">
+            <div class="field-group" *ngFor="let field of node.content.inputFields">
+              <label [for]="node.id + '_' + field.key" class="field-label">
+                {{ field.label }}
+                <span class="required-indicator" *ngIf="field.required">*</span>
+              </label>
+
+              <!-- Text Input -->
+              <input
+                *ngIf="field.type === 'text' || field.type === 'number'"
+                [id]="node.id + '_' + field.key"
+                [type]="field.type"
+                [placeholder]="field.placeholder || ''"
+                [ngModel]="node.config?.[field.key] || ''"
+                (ngModelChange)="updateNodeConfig(node.id, field.key, $event)"
+                class="field-input"
+                [class.required-field]="field.required && !node.config?.[field.key]">
+
+              <!-- Select Dropdown -->
+              <select
+                *ngIf="field.type === 'select'"
+                [id]="node.id + '_' + field.key"
+                [ngModel]="node.config?.[field.key] || ''"
+                (ngModelChange)="updateNodeConfig(node.id, field.key, $event)"
+                class="field-select"
+                [class.required-field]="field.required && !node.config?.[field.key]">
+                <option value="" disabled>Select {{ field.label }}</option>
+                <option *ngFor="let option of field.options" [value]="option">{{ option }}</option>
+              </select>
+
+              <!-- Checkbox -->
+              <label
+                *ngIf="field.type === 'checkbox'"
+                class="checkbox-label">
+                <input
+                  type="checkbox"
+                  [id]="node.id + '_' + field.key"
+                  [ngModel]="node.config?.[field.key] || false"
+                  (ngModelChange)="updateNodeConfig(node.id, field.key, $event)"
+                  class="field-checkbox">
+                <span class="checkbox-text">{{ field.label }}</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Display-only nodes (results/status) -->
+          <div class="display-section" *ngIf="node.content.displayOnly">
+            <div class="status-display" *ngIf="node.content.status">
+              <span class="status-text">Status: {{ node.content.status }}</span>
+            </div>
+
+            <!-- Results display area -->
+            <div class="results-display" *ngIf="node.config && node.config?.['results']">
+              <div class="results-summary">
+                <strong>Results:</strong>
+                <pre>{{ formatResults(node.config['results']) }}</pre>
+              </div>
+            </div>
+
+            <!-- Execution logs -->
+            <div class="logs-display" *ngIf="node.config && node.config?.['logs']">
+              <details class="logs-details">
+                <summary>Execution Logs ({{ node.config['logs'].length }})</summary>
+                <div class="logs-content">
+                  <div *ngFor="let log of node.config['logs']" class="log-entry">
+                    {{ log }}
+                  </div>
+                </div>
+              </details>
+            </div>
+          </div>
+
+          <!-- Node Actions -->
+          <div class="node-actions" *ngIf="!node.content.displayOnly">
+            <button
+              class="action-button test-button"
+              (click)="testNode(node.id)"
+              [disabled]="!canTestNode(node)"
+              title="Test this node configuration">
+              🧪 Test
+            </button>
+            <button
+              class="action-button delete-button"
+              (click)="deleteNode(node.id)"
+              title="Delete this node">
+              🗑️ Delete
+            </button>
           </div>
         </div>
 
@@ -43,66 +166,35 @@
               [fOutputId]="output.id"
               [fCanBeConnectedInputs]="canConnectTo(output.id)"
               [class]="'port output-port ' + output.color"
-              [title]="output.label"
+              [title]="output.label + ' (' + getDataTypeFromColor(output.color) + ')'"
             ></div>
-          </div>
-        </div>
-
-        <div class="node-body">
-          <div class="node-content">
-            <!-- Title and Description -->
-            <h4>{{ node.content.title }}</h4>
-            <p *ngIf="node.content.description">{{ node.content.description }}</p>
-
-            <!-- Editable Form Section (only if displayOnly is false or unset) -->
-            <div *ngIf="!node.content.displayOnly">
-              <!-- Text Input -->
-              <div *ngIf="node.content.hasInput">
-                <label>
-                  <span>{{ node.content.inputPlaceholder || 'Enter value:' }}</span>
-                  <input
-                    type="text"
-                    [placeholder]="node.content.inputPlaceholder"
-                  />
-                </label>
-              </div>
-
-              <!-- Select Dropdown -->
-              <div *ngIf="node.content.hasSelect">
-                <label>
-                  {{ node.content.selectLabel || 'Select option:' }}
-                  <select>
-                    <option
-                      *ngFor="let opt of node.content.selectOptions"
-                      [value]="opt"
-                    >
-                      {{ opt }}
-                    </option>
-                  </select>
-                </label>
-              </div>
-
-              <!-- Configurable Options (Checkbox List) -->
-              <div *ngIf="node.content.configOptions?.length">
-                <div *ngFor="let opt of node.content.configOptions">
-                  <label>
-                    <input type="checkbox" [value]="opt" class="form-control" />
-                    {{ opt }}
-                  </label>
-                </div>
-              </div>
-            </div>
-
-            <!-- Read-Only Display Section (if displayOnly is true) -->
-            <div *ngIf="node.content.displayOnly">
-              <!-- If there is a status, show it -->
-              <div *ngIf="node.content.status">
-                <span class="status">{{ node.content.status }}</span>
-              </div>
-            </div>
           </div>
         </div>
       </div>
     }
   </f-canvas>
+
+  <!-- Pipeline Status Panel -->
+  <div class="pipeline-status-panel" *ngIf="showStatusPanel">
+    <div class="status-header">
+      <h3>Pipeline Status</h3>
+      <button class="close-button" (click)="showStatusPanel = false">✕</button>
+    </div>
+    <div class="status-content">
+      <div class="status-item">
+        <span class="status-label">Nodes:</span>
+        <span class="status-value">{{ currentNodes.length }}</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">Connections:</span>
+        <span class="status-value">{{ connections.length }}</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">Validation:</span>
+        <span [class]="'status-value ' + (pipelineValid ? 'valid' : 'invalid')">
+          {{ pipelineValid ? 'Valid' : 'Invalid' }}
+        </span>
+      </div>
+    </div>
+  </div>
 </f-flow>

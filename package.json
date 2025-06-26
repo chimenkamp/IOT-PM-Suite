@@ -23,6 +23,7 @@
     "@foblex/mediator": "^1.1.2",
     "@foblex/platform": "^1.0.4",
     "@foblex/utils": "^1.1.1",
+    "bootstrap": "^5.3.7",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
     "zone.js": "~0.15.0"
