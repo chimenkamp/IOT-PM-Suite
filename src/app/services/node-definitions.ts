@@ -78,42 +78,42 @@ export const nodeDefinitions: Record<string, NodeTemplate> = {
     }
   },
 
-  'mqtt-connector': {
-    inputs: [],
-    outputs: [{ id: '', color: 'nord-blue', label: 'Raw Data' }],
-    content: {
-      title: 'MQTT Connector',
-      description: 'Connect to MQTT sensor stream for real-time data',
-      inputFields: [
-        {
-          key: 'brokerUrl',
-          label: 'MQTT Broker URL',
-          type: 'text',
-          placeholder: 'mqtt://localhost:1883',
-          required: true
-        },
-        {
-          key: 'topic',
-          label: 'Topic',
-          type: 'text',
-          placeholder: 'sensors/+/data',
-          required: true
-        },
-        {
-          key: 'username',
-          label: 'Username',
-          type: 'text',
-          required: false
-        },
-        {
-          key: 'password',
-          label: 'Password',
-          type: 'text',
-          required: false
-        }
-      ]
-    }
-  },
+  // 'mqtt-connector': {
+  //   inputs: [],
+  //   outputs: [{ id: '', color: 'nord-blue', label: 'Raw Data' }],
+  //   content: {
+  //     title: 'MQTT Connector',
+  //     description: 'Connect to MQTT sensor stream for real-time data',
+  //     inputFields: [
+  //       {
+  //         key: 'brokerUrl',
+  //         label: 'MQTT Broker URL',
+  //         type: 'text',
+  //         placeholder: 'mqtt://localhost:1883',
+  //         required: true
+  //       },
+  //       {
+  //         key: 'topic',
+  //         label: 'Topic',
+  //         type: 'text',
+  //         placeholder: 'sensors/+/data',
+  //         required: true
+  //       },
+  //       {
+  //         key: 'username',
+  //         label: 'Username',
+  //         type: 'text',
+  //         required: false
+  //       },
+  //       {
+  //         key: 'password',
+  //         label: 'Password',
+  //         type: 'text',
+  //         required: false
+  //       }
+  //     ]
+  //   }
+  // },
 
   // ============ DATA PROCESSING NODES ============
   'column-selector': {

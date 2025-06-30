@@ -2,6 +2,7 @@
 
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
+import { nodeDefinitions, NodeTemplate } from './node-definitions';
 
 export interface NodePort {
   id: string;
@@ -188,112 +189,6 @@ export class NodeService {
       y: Number(position.y) || 0
     };
 
-    const nodeDefinitions: Record<string, Partial<FlowNode>> = {
-      'read-file': {
-        inputs: [],
-        outputs: [{ id: `${nodeId}-output-0`, color: 'nord-blue', label: 'Raw Data' }],
-        content: {
-          title: 'Read File',
-          description: 'Load data from CSV, XML, YAML or JSON files',
-          hasFileUpload: true,
-          inputFields: [
-            { key: 'encoding', label: 'File Encoding', type: 'select', options: ['utf-8', 'latin-1', 'cp1252'], required: false },
-            { key: 'delimiter', label: 'CSV Delimiter', type: 'text', placeholder: 'Auto-detect', required: false }
-          ]
-        }
-      },
-      'mqtt-connector': {
-        inputs: [],
-        outputs: [{ id: `${nodeId}-output-0`, color: 'nord-blue', label: 'Stream Data' }],
-        content: {
-          title: 'MQTT Connector',
-          description: 'Connect to MQTT sensor stream for real-time data',
-          inputFields: [
-            { key: 'broker', label: 'MQTT Broker', type: 'text', placeholder: 'mqtt://localhost:1883', required: true },
-            { key: 'topic', label: 'Topic', type: 'text', placeholder: 'sensors/+/data', required: true },
-            { key: 'qos', label: 'QoS Level', type: 'select', options: ['0', '1', '2'], required: false }
-          ]
-        }
-      },
-      'column-selector': {
-        inputs: [{ id: `${nodeId}-input-0`, color: 'nord-blue', label: 'Raw Data' }],
-        outputs: [{ id: `${nodeId}-output-0`, color: 'nord-red', label: 'Series' }],
-        content: {
-          title: 'Column Selector',
-          description: 'Convert Raw Data column to Series',
-          inputFields: [
-            { key: 'columnName', label: 'Column Name', type: 'text', placeholder: 'Enter column name', required: true }
-          ]
-        }
-      },
-      'attribute-selector': {
-        inputs: [{ id: `${nodeId}-input-0`, color: 'nord-red', label: 'Series' }],
-        outputs: [{ id: `${nodeId}-output-0`, color: 'nord-yellow', label: 'Attribute' }],
-        content: {
-          title: 'Attribute Selector',
-          description: 'Select attributes from Series data',
-          inputFields: [
-            { key: 'attributeType', label: 'Attribute Type', type: 'select', options: ['id', 'timestamp', 'value', 'metadata'], required: true }
-          ]
-        }
-      },
-      'data-filter': {
-        inputs: [{ id: `${nodeId}-input-0`, color: 'nord-red', label: 'Series' }],
-        outputs: [{ id: `${nodeId}-output-0`, color: 'nord-red', label: 'Filtered Series' }],
-        content: {
-          title: 'Data Filter',
-          description: 'Apply conditions to filter Series data',
-          inputFields: [
-            { key: 'condition', label: 'Filter Condition', type: 'text', placeholder: 'value > 0', required: true },
-            { key: 'operator', label: 'Operator', type: 'select', options: ['>', '<', '>=', '<=', '==', '!='], required: true }
-          ]
-        }
-      },
-      'iot-event': {
-        inputs: [{ id: `${nodeId}-input-0`, color: 'nord-yellow', label: 'Attributes' }],
-        outputs: [{ id: `${nodeId}-output-0`, color: 'nord-green', label: 'IoT Events' }],
-        content: {
-          title: 'IoT Event',
-          description: 'Create IoT events with ID, Type, Timestamp, Metadata',
-          inputFields: [
-            { key: 'eventType', label: 'Event Type', type: 'text', placeholder: 'sensor_reading', required: true },
-            { key: 'timestampFormat', label: 'Timestamp Format', type: 'select', options: ['ISO8601', 'Unix', 'Custom'], required: false }
-          ]
-        }
-      },
-      'object-creator': {
-        inputs: [{ id: `${nodeId}-input-0`, color: 'nord-yellow', label: 'Attributes' }],
-        outputs: [{ id: `${nodeId}-output-0`, color: 'nord-purple', label: 'Objects' }],
-        content: {
-          title: 'Object Creator',
-          description: 'Create objects with ID, Type, Class, Metadata',
-          inputFields: [
-            { key: 'objectClass', label: 'Object Class', type: 'text', placeholder: 'Device', required: true },
-            { key: 'objectType', label: 'Object Type', type: 'text', placeholder: 'Sensor', required: true }
-          ]
-        }
-      },
-      'table-output': {
-        inputs: [{ id: `${nodeId}-input-0`, color: 'core-model', label: 'CORE Model' }],
-        outputs: [],
-        content: {
-          title: 'Table Output',
-          description: 'Display data in tabular format',
-          displayOnly: true
-        }
-      },
-      'export-ocel': {
-        inputs: [{ id: `${nodeId}-input-0`, color: 'core-model', label: 'CORE Model' }],
-        outputs: [],
-        content: {
-          title: 'Export to OCEL',
-          description: 'Export CORE metamodel to OCEL format',
-          inputFields: [
-            { key: 'filename', label: 'Output Filename', type: 'text', placeholder: 'output.jsonocel', required: true }
-          ]
-        }
-      }
-    };
 
     const baseNode: FlowNode = {
       id: nodeId,

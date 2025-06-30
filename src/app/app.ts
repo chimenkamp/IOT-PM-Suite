@@ -173,14 +173,14 @@ export class AppComponent implements OnInit {
           hasInputs: false,
           hasOutputs: true,
         },
-        {
-          type: 'mqtt-connector',
-          label: 'MQTT Connector',
-          description: 'Connect to MQTT sensor stream for real-time data',
-          color: 'nord-blue',
-          hasInputs: false,
-          hasOutputs: true,
-        },
+        // {
+        //   type: 'mqtt-connector',
+        //   label: 'MQTT Connector',
+        //   description: 'Connect to MQTT sensor stream for real-time data',
+        //   color: 'nord-blue',
+        //   hasInputs: false,
+        //   hasOutputs: true,
+        // },
       ],
     },
     {
