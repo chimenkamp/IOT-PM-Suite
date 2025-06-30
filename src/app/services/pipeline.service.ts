@@ -58,7 +58,7 @@ export interface ExecutionResult {
   providedIn: 'root'
 })
 export class PipelineService {
-  private readonly backendUrl = 'http://localhost:5100/api'; // Updated port
+  private readonly backendUrl = 'https://iot-pm-suite-backend.onrender.com/api'; // Updated port
 
   constructor(
     private nodeService: NodeService,
