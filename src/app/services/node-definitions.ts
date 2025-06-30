@@ -54,7 +54,7 @@ export const nodeDefinitions: Record<string, NodeTemplate> = {
   // ============ DATA INPUT & LOADING NODES ============
   'read-file': {
     inputs: [],
-    outputs: [{ id: '', color: 'nord-blue', label: 'Raw Data' }],
+    outputs: [{ id: '{nodeId}-output-0', color: 'nord-blue', label: 'Raw Data' }],
     content: {
       title: 'Read File',
       description: 'Load data from CSV, XML, YAML or JSON files',
@@ -78,47 +78,10 @@ export const nodeDefinitions: Record<string, NodeTemplate> = {
     }
   },
 
-  // 'mqtt-connector': {
-  //   inputs: [],
-  //   outputs: [{ id: '', color: 'nord-blue', label: 'Raw Data' }],
-  //   content: {
-  //     title: 'MQTT Connector',
-  //     description: 'Connect to MQTT sensor stream for real-time data',
-  //     inputFields: [
-  //       {
-  //         key: 'brokerUrl',
-  //         label: 'MQTT Broker URL',
-  //         type: 'text',
-  //         placeholder: 'mqtt://localhost:1883',
-  //         required: true
-  //       },
-  //       {
-  //         key: 'topic',
-  //         label: 'Topic',
-  //         type: 'text',
-  //         placeholder: 'sensors/+/data',
-  //         required: true
-  //       },
-  //       {
-  //         key: 'username',
-  //         label: 'Username',
-  //         type: 'text',
-  //         required: false
-  //       },
-  //       {
-  //         key: 'password',
-  //         label: 'Password',
-  //         type: 'text',
-  //         required: false
-  //       }
-  //     ]
-  //   }
-  // },
-
   // ============ DATA PROCESSING NODES ============
   'column-selector': {
-    inputs: [{ id: '', color: 'nord-blue', label: 'Raw Data' }],
-    outputs: [{ id: '', color: 'nord-red', label: 'Series' }],
+    inputs: [{ id: '{nodeId}-input-0', color: 'nord-blue', label: 'Raw Data' }],
+    outputs: [{ id: '{nodeId}-output-0', color: 'nord-red', label: 'Series' }],
     content: {
       title: 'Column Selector',
       description: 'Takes Raw Data and converts specific column to Series',
@@ -135,8 +98,8 @@ export const nodeDefinitions: Record<string, NodeTemplate> = {
   },
 
   'attribute-selector': {
-    inputs: [{ id: '', color: 'nord-red', label: 'Series' }],
-    outputs: [{ id: '', color: 'nord-yellow', label: 'Attribute' }],
+    inputs: [{ id: '{nodeId}-input-0', color: 'nord-red', label: 'Series' }],
+    outputs: [{ id: '{nodeId}-output-0', color: 'nord-yellow', label: 'Attribute' }],
     content: {
       title: 'Attribute Selector',
       description: 'Select attributes from Series data',
@@ -160,8 +123,8 @@ export const nodeDefinitions: Record<string, NodeTemplate> = {
   },
 
   'data-filter': {
-    inputs: [{ id: '', color: 'nord-red', label: 'Series' }],
-    outputs: [{ id: '', color: 'nord-red', label: 'Series' }],
+    inputs: [{ id: '{nodeId}-input-0', color: 'nord-red', label: 'Series' }],
+    outputs: [{ id: '{nodeId}-output-0', color: 'nord-red', label: 'Series' }],
     content: {
       title: 'Data Filter',
       description: 'Apply conditions to filter Series data',
@@ -185,8 +148,8 @@ export const nodeDefinitions: Record<string, NodeTemplate> = {
   },
 
   'data-mapper': {
-    inputs: [{ id: '', color: 'nord-red', label: 'Series' }],
-    outputs: [{ id: '', color: 'nord-red', label: 'Series' }],
+    inputs: [{ id: '{nodeId}-input-0', color: 'nord-red', label: 'Series' }],
+    outputs: [{ id: '{nodeId}-output-0', color: 'nord-red', label: 'Series' }],
     content: {
       title: 'Data Mapper',
       description: 'Apply mapping transformations to Series data',
@@ -212,12 +175,12 @@ export const nodeDefinitions: Record<string, NodeTemplate> = {
   // ============ CORE MODEL CREATION NODES ============
   'iot-event': {
     inputs: [
-      { id: '', color: 'nord-yellow', label: 'ID' },
-      { id: '', color: 'nord-yellow', label: 'Type' },
-      { id: '', color: 'nord-yellow', label: 'Timestamp' },
-      { id: '', color: 'nord-yellow', label: 'Metadata' }
+      { id: '{nodeId}-input-0', color: 'nord-yellow', label: 'ID' },
+      { id: '{nodeId}-input-1', color: 'nord-yellow', label: 'Type' },
+      { id: '{nodeId}-input-2', color: 'nord-yellow', label: 'Timestamp' },
+      { id: '{nodeId}-input-3', color: 'nord-yellow', label: 'Metadata' }
     ],
-    outputs: [{ id: '', color: 'nord-green', label: 'IoT Event' }],
+    outputs: [{ id: '{nodeId}-output-0', color: 'nord-green', label: 'IoT Event' }],
     content: {
       title: 'IoT Event',
       description: 'Create IoT events for CORE model from sensor data',
@@ -235,13 +198,13 @@ export const nodeDefinitions: Record<string, NodeTemplate> = {
 
   'process-event': {
     inputs: [
-      { id: '', color: 'nord-yellow', label: 'ID' },
-      { id: '', color: 'nord-yellow', label: 'Type' },
-      { id: '', color: 'nord-yellow', label: 'Timestamp' },
-      { id: '', color: 'nord-yellow', label: 'Metadata' },
-      { id: '', color: 'nord-yellow', label: 'Activity Label' }
+      { id: '{nodeId}-input-0', color: 'nord-yellow', label: 'ID' },
+      { id: '{nodeId}-input-1', color: 'nord-yellow', label: 'Type' },
+      { id: '{nodeId}-input-2', color: 'nord-yellow', label: 'Timestamp' },
+      { id: '{nodeId}-input-3', color: 'nord-yellow', label: 'Metadata' },
+      { id: '{nodeId}-input-4', color: 'nord-yellow', label: 'Activity Label' }
     ],
-    outputs: [{ id: '', color: 'nord-green', label: 'Process Event' }],
+    outputs: [{ id: '{nodeId}-output-0', color: 'nord-green', label: 'Process Event' }],
     content: {
       title: 'Process Event',
       description: 'Create process events for CORE model',
@@ -259,12 +222,12 @@ export const nodeDefinitions: Record<string, NodeTemplate> = {
 
   'object-creator': {
     inputs: [
-      { id: '', color: 'nord-yellow', label: 'ID' },
-      { id: '', color: 'nord-yellow', label: 'Type' },
-      { id: '', color: 'nord-yellow', label: 'Class' },
-      { id: '', color: 'nord-yellow', label: 'Metadata' }
+      { id: '{nodeId}-input-0', color: 'nord-yellow', label: 'ID' },
+      { id: '{nodeId}-input-1', color: 'nord-yellow', label: 'Type' },
+      { id: '{nodeId}-input-2', color: 'nord-yellow', label: 'Class' },
+      { id: '{nodeId}-input-3', color: 'nord-yellow', label: 'Metadata' }
     ],
-    outputs: [{ id: '', color: 'nord-purple', label: 'Object' }],
+    outputs: [{ id: '{nodeId}-output-0', color: 'nord-purple', label: 'Object' }],
     content: {
       title: 'Object Creator',
       description: 'Create objects with ID, Type, Class, and Metadata',
@@ -283,7 +246,7 @@ export const nodeDefinitions: Record<string, NodeTemplate> = {
   // ============ UTILITY NODES ============
   'unique-id-generator': {
     inputs: [],
-    outputs: [{ id: '', color: 'nord-yellow', label: 'ID' }],
+    outputs: [{ id: '{nodeId}-output-0', color: 'nord-yellow', label: 'ID' }],
     content: {
       title: 'Unique ID Generator',
       description: 'Generate unique identifiers for events and objects',
@@ -308,7 +271,7 @@ export const nodeDefinitions: Record<string, NodeTemplate> = {
 
   'object-class-selector': {
     inputs: [],
-    outputs: [{ id: '', color: 'nord-yellow', label: 'Class' }],
+    outputs: [{ id: '{nodeId}-output-0', color: 'nord-yellow', label: 'Class' }],
     content: {
       title: 'Object Class Selector',
       description: 'Select object class for CORE model objects',
@@ -339,10 +302,10 @@ export const nodeDefinitions: Record<string, NodeTemplate> = {
   // ============ RELATIONSHIP NODES ============
   'event-object-relation': {
     inputs: [
-      { id: '', color: 'nord-green', label: 'Event' },
-      { id: '', color: 'nord-purple', label: 'Object' }
+      { id: '{nodeId}-input-0', color: 'nord-green', label: 'Event' },
+      { id: '{nodeId}-input-1', color: 'nord-purple', label: 'Object' }
     ],
-    outputs: [{ id: '', color: 'nord-orange', label: 'E-O Relationship' }],
+    outputs: [{ id: '{nodeId}-output-0', color: 'nord-orange', label: 'E-O Relationship' }],
     content: {
       title: 'Event-Object Relationship',
       description: 'Create relationships between events and objects',
@@ -360,10 +323,10 @@ export const nodeDefinitions: Record<string, NodeTemplate> = {
 
   'event-event-relation': {
     inputs: [
-      { id: '', color: 'nord-green', label: 'Source Event' },
-      { id: '', color: 'nord-green', label: 'Target Event' }
+      { id: '{nodeId}-input-0', color: 'nord-green', label: 'Source Event' },
+      { id: '{nodeId}-input-1', color: 'nord-green', label: 'Target Event' }
     ],
-    outputs: [{ id: '', color: 'nord-orange', label: 'E-E Relationship' }],
+    outputs: [{ id: '{nodeId}-output-0', color: 'nord-orange', label: 'E-E Relationship' }],
     content: {
       title: 'Event-Event Relationship',
       description: 'Create derivation relationships between events',
@@ -382,11 +345,11 @@ export const nodeDefinitions: Record<string, NodeTemplate> = {
   // ============ CORE MODEL CONSTRUCTION ============
   'core-metamodel': {
     inputs: [
-      { id: '', color: 'nord-green', label: 'Process Events' },
-      { id: '', color: 'nord-green', label: 'IoT Events' },
-      { id: '', color: 'nord-orange', label: 'Relationships' }
+      { id: '{nodeId}-input-0', color: 'nord-green', label: 'Process Events' },
+      { id: '{nodeId}-input-1', color: 'nord-green', label: 'IoT Events' },
+      { id: '{nodeId}-input-2', color: 'nord-orange', label: 'Relationships' }
     ],
-    outputs: [{ id: '', color: 'core-model', label: 'CORE Metamodel' }],
+    outputs: [{ id: '{nodeId}-output-0', color: 'core-model', label: 'CORE Metamodel' }],
     content: {
       title: 'CORE Metamodel',
       description: 'Construct the final CORE metamodel from events and relationships',
@@ -397,7 +360,7 @@ export const nodeDefinitions: Record<string, NodeTemplate> = {
 
   // ============ OUTPUT & EXPORT NODES ============
   'table-output': {
-    inputs: [{ id: '', color: 'core-model', label: 'Data' }],
+    inputs: [{ id: '{nodeId}-input-0', color: 'core-model', label: 'Data' }],
     outputs: [],
     content: {
       title: 'Table Output',
@@ -416,7 +379,7 @@ export const nodeDefinitions: Record<string, NodeTemplate> = {
   },
 
   'export-ocel': {
-    inputs: [{ id: '', color: 'core-model', label: 'CORE Metamodel' }],
+    inputs: [{ id: '{nodeId}-input-0', color: 'core-model', label: 'CORE Metamodel' }],
     outputs: [],
     content: {
       title: 'Export to OCEL',
@@ -441,7 +404,7 @@ export const nodeDefinitions: Record<string, NodeTemplate> = {
   },
 
   'ocpm-discovery': {
-    inputs: [{ id: '', color: 'core-model', label: 'CORE Metamodel' }],
+    inputs: [{ id: '{nodeId}-input-0', color: 'core-model', label: 'CORE Metamodel' }],
     outputs: [],
     content: {
       title: 'OCPM Model Discovery',

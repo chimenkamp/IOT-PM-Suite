@@ -332,10 +332,10 @@ export class MappingToolbarComponent {
    * Execute the current pipeline.
    */
   executePipeline(): void {
-    if (!this.canExecutePipeline()) {
-      this.showStatus('Pipeline cannot be executed. Please add nodes and connections.', 'error');
-      return;
-    }
+    // if (!this.canExecutePipeline()) {
+    //   this.showStatus('Pipeline cannot be executed. Please add nodes and connections.', 'error');
+    //   return;
+    // }
 
     try {
       const nodes = this.nodeService.getAllNodes();

@@ -63,19 +63,44 @@ export class NodeService {
    * FIXED: Properly preserve positions and reset node counter.
    */
   bulkAddNodes(nodes: FlowNode[]): void {
-    // Ensure positions are properly formatted
-    const processedNodes = nodes.map(node => ({
-      ...node,
-      position: {
-        x: Number(node.position?.x) || 0,
-        y: Number(node.position?.y) || 0
-      },
-      // Ensure all required properties exist
-      inputs: node.inputs || [],
-      outputs: node.outputs || [],
-      content: node.content || { title: node.type },
-      config: node.config || {}
-    }));
+    // Ensure positions are properly formatted and nodes have complete structure
+    const processedNodes = nodes.map(node => {
+      // For loaded nodes, we don't need to replace template IDs since they should already have proper IDs
+      // But we need to ensure the node has the complete definition
+      const nodeDefinition = nodeDefinitions[node.type];
+
+      let processedInputs = node.inputs || [];
+      let processedOutputs = node.outputs || [];
+
+      // If the node has empty or missing ports, restore them from definition
+      if (nodeDefinition) {
+        if (processedInputs.length === 0 && nodeDefinition.inputs.length > 0) {
+          processedInputs = nodeDefinition.inputs.map(input => ({
+            ...input,
+            id: input.id.replace('{nodeId}', node.id)
+          }));
+        }
+
+        if (processedOutputs.length === 0 && nodeDefinition.outputs.length > 0) {
+          processedOutputs = nodeDefinition.outputs.map(output => ({
+            ...output,
+            id: output.id.replace('{nodeId}', node.id)
+          }));
+        }
+      }
+
+      return {
+        ...node,
+        position: {
+          x: Number(node.position?.x) || 0,
+          y: Number(node.position?.y) || 0
+        },
+        inputs: processedInputs,
+        outputs: processedOutputs,
+        content: node.content || { title: node.type },
+        config: node.config || {}
+      };
+    });
 
     // Reset node counter based on loaded nodes to avoid ID conflicts
     const maxNodeNumber = processedNodes.reduce((max, node) => {
@@ -86,7 +111,7 @@ export class NodeService {
     this.nodeCounter = maxNodeNumber;
 
     this.nodesSubject.next(processedNodes);
-    console.log('Bulk added nodes with preserved positions:', processedNodes);
+    console.log('Bulk added nodes with preserved positions and restored content:', processedNodes);
   }
 
   /**
@@ -181,6 +206,7 @@ export class NodeService {
 
   /**
    * Create a node from type definition.
+   * FIXED: Properly replace template IDs with actual node IDs.
    */
   private createNodeFromType(nodeId: string, nodeType: string, position: Position): FlowNode {
     // Ensure position is properly formatted
@@ -188,7 +214,6 @@ export class NodeService {
       x: Number(position.x) || 0,
       y: Number(position.y) || 0
     };
-
 
     const baseNode: FlowNode = {
       id: nodeId,
@@ -202,7 +227,23 @@ export class NodeService {
 
     const nodeDefinition = nodeDefinitions[nodeType];
     if (nodeDefinition) {
-      return { ...baseNode, ...nodeDefinition };
+      // Replace template IDs with actual node IDs
+      const processedInputs = nodeDefinition.inputs.map(input => ({
+        ...input,
+        id: input.id.replace('{nodeId}', nodeId)
+      }));
+
+      const processedOutputs = nodeDefinition.outputs.map(output => ({
+        ...output,
+        id: output.id.replace('{nodeId}', nodeId)
+      }));
+
+      return {
+        ...baseNode,
+        ...nodeDefinition,
+        inputs: processedInputs,
+        outputs: processedOutputs
+      };
     }
 
     return baseNode;
