@@ -11,6 +11,7 @@ import { NodeService } from './services/node.service';
 import { MappingService } from './services/mapping.service';
 import { PipelineService } from './services/pipeline.service';
 import { ApiService } from './services/api.service';
+import { CAIROTemplateService } from './services/cairo-template.service';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -20,6 +21,7 @@ export const appConfig: ApplicationConfig = {
     NodeService,
     MappingService,
     PipelineService,
-    ApiService
+    ApiService,
+    CAIROTemplateService
   ]
 };

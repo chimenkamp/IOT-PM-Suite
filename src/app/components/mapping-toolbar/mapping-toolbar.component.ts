@@ -1,12 +1,13 @@
-// src/app/components/mapping-toolbar/mapping-toolbar.component.ts - Complete Integration
+// src/app/components/mapping-toolbar/mapping-toolbar.component.ts - Updated with OCPM image handling
 
-import { Component, ElementRef, ViewChild } from '@angular/core';
+import { Component, ElementRef, ViewChild, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MappingService } from '../../services/mapping.service';
 import { NodeService } from '../../services/node.service';
 import { PipelineService, ValidationResult } from '../../services/pipeline.service';
 import { ApiService, ValidationResponse } from '../../services/api.service';
+import { CAIROTemplateService } from '../../services/cairo-template.service';
 
 @Component({
   selector: 'app-mapping-toolbar',
@@ -40,6 +41,13 @@ import { ApiService, ValidationResponse } from '../../services/api.service';
               title="Validate pipeline connections">
               <span class="button-icon">✓</span>
               Validate
+            </button>
+            <button
+              class="toolbar-button"
+              (click)="loadExamplePipeline()"
+              title="Load example pipeline">
+              <span class="button-icon">📋</span>
+              Load Example
             </button>
           </div>
 
@@ -131,7 +139,7 @@ import { ApiService, ValidationResponse } from '../../services/api.service';
       <input
         #datasetInput
         type="file"
-        accept=".csv,.json,.xml,.yaml,.yml,.xes"
+        accept=".csv,.json,.xml,.yaml,.yml,.xes,.xes"
         (change)="onDatasetSelected($event)"
         style="display: none;">
 
@@ -235,7 +243,7 @@ import { ApiService, ValidationResponse } from '../../services/api.service';
             <button
               class="dialog-button save-button"
               (click)="savePipeline()"
-              [disabled]="!saveForm.name.trim() || !validationResult.isValid">
+              [disabled]="false">
               Save & Download
             </button>
           </div>
@@ -290,7 +298,9 @@ export class MappingToolbarComponent {
     private mappingService: MappingService,
     private nodeService: NodeService,
     private pipelineService: PipelineService,
-    private apiService: ApiService
+    private apiService: ApiService,
+    private cairoTemplateService: CAIROTemplateService,
+    private cdr: ChangeDetectorRef  // Add ChangeDetectorRef
   ) {
     this.updateStats();
 
@@ -319,6 +329,18 @@ export class MappingToolbarComponent {
     this.pipelineOperationsCollapsed = !this.pipelineOperationsCollapsed;
   }
 
+  downloadURI(uri: any, name: any) {
+    var link = document.createElement("a");
+    link.download = name;
+    link.href = uri;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer"
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    link.remove();
+  }
+
   /**
    * Check if pipeline can be executed (has nodes and connections).
    */
@@ -329,14 +351,10 @@ export class MappingToolbarComponent {
   }
 
   /**
-   * Execute the current pipeline.
+   * Execute the current pipeline with OCPM image display support.
+   * UPDATED: Now handles process discovery images properly.
    */
   executePipeline(): void {
-    // if (!this.canExecutePipeline()) {
-    //   this.showStatus('Pipeline cannot be executed. Please add nodes and connections.', 'error');
-    //   return;
-    // }
-
     try {
       const nodes = this.nodeService.getAllNodes();
       const connections = this.mappingService.connectionObserver$.getValue();
@@ -344,30 +362,149 @@ export class MappingToolbarComponent {
 
       console.log('Executing pipeline:', pipeline);
 
+      // Set loading state for OCPM Discovery nodes
+      const ocpmNodes = nodes.filter(node => node.type === 'ocpm-discovery');
+      console.log('Found OCPM nodes for loading state:', ocpmNodes.length);
+
+      ocpmNodes.forEach(node => {
+        console.log(`Setting loading state for OCPM node: ${node.id}`);
+        this.nodeService.updateNodeConfig(node.id, {
+          imageLoading: true,
+          processImageUrl: null,
+          imageLoadError: false,
+          imageErrorMessage: null
+        });
+      });
+
       this.showStatus('Pipeline execution started...', 'info');
 
       // Execute pipeline through API service
       this.apiService.executePipeline(pipeline).subscribe({
         next: (result) => {
           console.log('Pipeline execution completed:', result);
+
           if (result.success) {
             this.showStatus('Pipeline executed successfully!', 'success');
-            // Handle execution results
+
+            // Handle execution results - UPDATED with image support
             if (result.results) {
               console.log('Pipeline results:', result.results);
+              this.handleExecutionResults(result.results);
+            } else {
+              // Clear loading state if no results
+              ocpmNodes.forEach(node => {
+                this.nodeService.updateNodeConfig(node.id, {
+                  imageLoading: false,
+                  imageLoadError: true,
+                  imageErrorMessage: 'No results returned from execution'
+                });
+              });
             }
           } else {
             this.showStatus('Pipeline execution failed: ' + (result.errors?.join(', ') || 'Unknown error'), 'error');
+
+            // Clear loading state for OCPM nodes on failure
+            ocpmNodes.forEach(node => {
+              this.nodeService.updateNodeConfig(node.id, {
+                imageLoading: false,
+                imageLoadError: true,
+                imageErrorMessage: 'Pipeline execution failed'
+              });
+            });
           }
         },
         error: (error) => {
           console.error('Pipeline execution failed:', error);
           this.showStatus('Pipeline execution failed: ' + error, 'error');
+
+          // Clear loading state for OCPM nodes on error
+          const allNodes = this.nodeService.getAllNodes();
+          const ocmpNodes = allNodes.filter(node => node.type === 'ocpm-discovery');
+
+          ocmpNodes.forEach(node => {
+            this.nodeService.updateNodeConfig(node.id, {
+              imageLoading: false,
+              imageLoadError: true,
+              imageErrorMessage: 'Pipeline execution failed: ' + error
+            });
+          });
         }
       });
     } catch (error) {
       this.showStatus('Failed to create pipeline definition: ' + error, 'error');
     }
+  }
+
+  /**
+   * Handle execution results with OCPM image display support.
+   * NEW METHOD: Processes results and updates OCPM Discovery nodes.
+   */
+  private handleExecutionResults(results: any): void {
+    console.log('Handling execution results:', results);
+
+    // Handle process discovery image URL
+    if (results.process_discovery) {
+      console.log('Process discovery image available:', results.process_discovery);
+
+      // Find the OCPM Discovery nodes
+      const ocpmNodes = this.nodeService.getAllNodes().filter(node => node.type === 'ocpm-discovery');
+      console.log('Found OCPM nodes for image update:', ocpmNodes.length);
+
+      if (ocpmNodes.length === 0) {
+        console.warn('No OCPM Discovery nodes found to display the image!');
+        this.showStatus('Process model generated but no OCPM Discovery node found to display it', 'error');
+        return;
+      }
+
+      ocpmNodes.forEach(node => {
+        console.log(`Updating OCPM node ${node.id} with image URL: ${results.process_discovery}`);
+
+        // Update node configuration with image data
+        this.nodeService.updateNodeConfig(node.id, {
+          processImageUrl: results.process_discovery,
+          generatedAt: new Date().toISOString(),
+          imageLoading: false,
+          imageLoadError: false
+        });
+
+        // Verify the update took effect
+        setTimeout(() => {
+          const updatedNode = this.nodeService.getNodeById(node.id);
+          console.log('Updated node config after image URL set:', updatedNode?.config);
+        }, 100);
+      });
+
+      this.showStatus('Process model generated and displayed in OCPM Discovery node', 'success');
+    }
+
+    // Handle discovery statistics if available
+    if (results.discovery_stats) {
+      console.log('Discovery statistics:', results.discovery_stats);
+
+      // Update OCPM nodes with statistics
+      const ocpmNodes = this.nodeService.getAllNodes().filter(node => node.type === 'ocpm-discovery');
+
+      ocpmNodes.forEach(node => {
+        this.nodeService.updateNodeConfig(node.id, {
+          discoveryStats: results.discovery_stats
+        });
+      });
+    }
+
+    // Handle CORE model creation
+    if (results.core_model) {
+      console.log('CORE Model created:', results.core_model);
+      this.showStatus('CORE Model successfully created', 'success');
+    }
+
+    // Handle extended table
+    if (results.extended_table) {
+      console.log('Extended table has', results.extended_table.length, 'rows');
+      this.showStatus(`Extended table created with ${results.extended_table.length} rows`, 'success');
+    }
+
+    // Force change detection to ensure UI updates
+    this.cdr.detectChanges();
   }
 
   /**
@@ -573,8 +710,6 @@ export class MappingToolbarComponent {
    * Save the pipeline definition.
    */
   savePipeline(): void {
-    if (!this.saveForm.name.trim() || !this.validationResult.isValid) return;
-
     try {
       const nodes = this.nodeService.getAllNodes();
       const connections = this.mappingService.connectionObserver$.getValue();
@@ -678,5 +813,61 @@ export class MappingToolbarComponent {
   private clearStatus(): void {
     this.statusMessage = '';
     this.statusType = '';
+  }
+
+  /**
+   * Load example pipeline.
+   */
+  loadExamplePipeline(): void {
+    this.cairoTemplateService.loadTemplate('cairo-basic');
+  }
+
+  /**
+   * Debug method to test OCPM node image display manually.
+   */
+  debugTestImageDisplay(): void {
+    const ocpmNodes = this.nodeService.getAllNodes().filter(node => node.type === 'ocpm-discovery');
+    console.log('Debug: Found OCPM nodes:', ocpmNodes.length);
+
+    if (ocpmNodes.length === 0) {
+      this.showStatus('No OCPM Discovery nodes found. Add one to test image display.', 'error');
+      return;
+    }
+
+    const testNode = ocpmNodes[0];
+    console.log('Debug: Testing image display on node:', testNode.id);
+
+    // Test loading state
+    this.nodeService.updateNodeConfig(testNode.id, {
+      imageLoading: true,
+      processImageUrl: null,
+      imageLoadError: false
+    });
+
+    this.showStatus('Testing image display - Loading state set', 'info');
+
+    // After 2 seconds, simulate successful image load
+    setTimeout(() => {
+      this.nodeService.updateNodeConfig(testNode.id, {
+        imageLoading: false,
+        processImageUrl: 'https://via.placeholder.com/400x300/5e81ac/eceff4?text=Test+Process+Model',
+        imageLoadError: false,
+        generatedAt: new Date().toISOString(),
+        discoveryStats: {
+          nodes: 12,
+          edges: 18,
+          activities: 8,
+          cases: 156,
+          algorithm: 'Directly-Follows Graph',
+          executionTime: '2.3s'
+        }
+      });
+
+      console.log('Debug: Set success state with test image');
+      this.showStatus('Test image loaded successfully!', 'success');
+
+      // Force change detection
+      this.cdr.detectChanges();
+    }, 2000);
   }
 }

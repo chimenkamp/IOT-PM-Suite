@@ -1,4 +1,4 @@
-// src/app/services/mapping.service.ts - Fixed with Pipeline Format Support
+// src/app/services/mapping.service.ts
 
 import { Injectable } from '@angular/core';
 import { NodeService, FlowNode } from './node.service';
@@ -90,69 +90,106 @@ export class MappingService {
     };
   }
 
-  /**
-   * Import a mapping definition and restore the nodes and connections.
-   * FIXED: Support both mapping and pipeline formats, better validation and position handling.
-   */
-  importMapping(data: MappingDefinition | PipelineDefinition): void {
-    console.log('Importing data:', data);
+  // mapping.service.ts
+  private isNodeHandleArray(arr: any[]): boolean {
+    return Array.isArray(arr) && arr.every(p => p && typeof p.id === 'string' && 'label' in p && 'color' in p);
+  }
 
-    // Clear existing nodes and connections
+  private toNodeHandles(ports: any[] | undefined, fallback: any[] | undefined): any[] {
+    if (this.isNodeHandleArray(ports || [])) return ports!;
+    if (Array.isArray(ports) && ports.length > 0) {
+      // Convert pipeline ports {id, name, dataType} -> NodeHandle {id, label, color}
+      return ports.map(p => ({
+        id: p.id,
+        label: p.name || p.label || 'Port',
+        color: this.mapDataTypeToColor(p.dataType || 'Unknown')
+      }));
+    }
+    // Fallback to nodeDefinitions (already proper NodeHandles)
+    return fallback || [];
+  }
+  /**
+   * If all node positions are within a tiny bounding box, spread them on a grid.
+   * This only affects obviously broken legacy files and is a no-op otherwise.
+   */
+  private decollapsePositions(nodes: FlowNode[]): FlowNode[] {
+    if (!nodes || nodes.length < 2) return nodes;
+
+    const xs = nodes.map(n => Number(n.position?.x || 0));
+    const ys = nodes.map(n => Number(n.position?.y || 0));
+    const minX = Math.min(...xs), maxX = Math.max(...xs);
+    const minY = Math.min(...ys), maxY = Math.max(...ys);
+
+    const width = maxX - minX;
+    const height = maxY - minY;
+
+    // "Collapsed" if everything is inside a 20×20 px box
+    if (width > 20 || height > 20) return nodes;
+
+    const cols = Math.ceil(Math.sqrt(nodes.length));
+    const gapX = 240; // grid cell width
+    const gapY = 160; // grid cell height
+    const originX = 100;
+    const originY = 100;
+
+    return nodes.map((n, i) => {
+      const cx = i % cols;
+      const cy = Math.floor(i / cols);
+      return {
+        ...n,
+        position: { x: originX + cx * gapX, y: originY + cy * gapY },
+      };
+    });
+  }
+
+  importMapping(data: MappingDefinition | PipelineDefinition): void {
     this.nodeService.clearAllNodes();
     this.connectionObserver$.next([]);
 
-    // Convert pipeline format to mapping format if needed
     const mapping = this.convertToMappingFormat(data);
 
-    // Validate and fix node positions before importing
     const validatedNodes = mapping.nodes.map(node => {
-      // Get the full node definition to restore complete content
       const nodeDefinition = nodeDefinitions[node.type];
 
       const validatedNode = {
         ...node,
         position: this.validateAndFixPosition(node.position),
-        // Ensure all required properties exist, but prefer the imported data
-        inputs: node.inputs && node.inputs.length > 0 ? node.inputs : (nodeDefinition?.inputs || []),
-        outputs: node.outputs && node.outputs.length > 0 ? node.outputs : (nodeDefinition?.outputs || []),
-        // Use the full content definition from nodeDefinitions, but preserve any custom content
-        content: nodeDefinition ? {
-          ...nodeDefinition.content,
-          // Override with any custom content from the saved file
-          ...(node.content || {})
-        } : (node.content || { title: node.type || 'Unknown' }),
-        // Preserve the config values from the saved file
-        config: node.config || {}
+        inputs: this.toNodeHandles(node.inputs as any[], nodeDefinition?.inputs),
+        outputs: this.toNodeHandles(node.outputs as any[], nodeDefinition?.outputs),
+        content: nodeDefinition ? { ...nodeDefinition.content, ...(node as any).content } :
+                  ((node as any).content || { title: node.type || 'Unknown' }),
+        config: (node as any).config || {}
       };
-
-      console.log(`Node ${node.id}: Original position:`, node.position, 'Fixed position:', validatedNode.position);
-      console.log(`Node ${node.id}: Content restored:`, validatedNode.content);
-      console.log(`Node ${node.id}: Config restored:`, validatedNode.config);
 
       return validatedNode;
     });
 
-    // Import nodes with validated positions
-    this.nodeService.bulkAddNodes(validatedNodes);
+    const adjustedNodes = this.decollapsePositions(validatedNodes);
 
-    // Convert and import connections
+    // Import nodes
+    this.nodeService.bulkAddNodes(adjustedNodes as FlowNode[]);
     const simpleConnections = this.convertConnectionsFormat(mapping.connections);
     this.connectionObserver$.next(simpleConnections);
-
-    console.log('Import completed. Nodes with positions:', validatedNodes.map(n => ({ id: n.id, position: n.position })));
-    console.log('Imported connections:', simpleConnections);
   }
 
   /**
    * Convert pipeline format to mapping format.
    */
   private convertToMappingFormat(data: any): MappingDefinition {
-    // Check if it's already in mapping format
-    if (data.metadata && typeof data.metadata === 'object') {
+    // Be strict: mapping files must have metadata.name and FlowNode-like ports
+    const looksLikeMapping =
+      data &&
+      data.metadata &&
+      typeof data.metadata === 'object' &&
+      typeof data.metadata.name === 'string' &&
+      Array.isArray(data.nodes) &&
+      Array.isArray(data.connections);
+
+    if (looksLikeMapping) {
       return data as MappingDefinition;
     }
 
-    // Convert pipeline format to mapping format
+    // Fallback: treat as pipeline and convert
     const pipelineData = data as PipelineDefinition;
     return {
       version: pipelineData.version || '1.0.0',
@@ -166,6 +203,7 @@ export class MappingService {
       connections: pipelineData.connections || []
     };
   }
+
 
   /**
    * Convert pipeline nodes to FlowNode format.
@@ -233,7 +271,18 @@ export class MappingService {
       'Event': 'nord-green',
       'Object': 'nord-purple',
       'Relationship': 'nord-orange',
-      'COREModel': 'core-model'
+      'COREModel': 'core-model',
+      // New data types for CAIRO parsing
+      'Traces': 'nord-red',
+      'StreamPoints': 'nord-red',
+      'StreamEvents': 'nord-green',
+      'StreamMetadata': 'nord-yellow',
+      'LifecycleData': 'nord-yellow',
+      'Elements': 'nord-red',
+      'Attributes': 'nord-yellow',
+      'FlattenedData': 'nord-red',
+      'ContextRelationships': 'nord-orange',
+      'MappedAttributes': 'nord-yellow'
     };
     return typeColorMap[dataType] || 'nord-blue';
   }
@@ -258,7 +307,26 @@ export class MappingService {
       'core-metamodel': 'CORE Metamodel',
       'table-output': 'Table Output',
       'export-ocel': 'Export to OCEL',
-      'ocpm-discovery': 'OCPM Model Discovery'
+      'ocpm-discovery': 'OCPM Model Discovery',
+      // CAIRO XML Parsing Nodes
+      'xml-trace-extractor': 'XML Trace Extractor',
+      'case-object-extractor': 'Case Object Extractor',
+      'stream-point-extractor': 'Stream Point Extractor',
+      'iot-event-from-stream': 'IoT Event From Stream',
+      'trace-event-linker': 'Trace Event Linker',
+      // Generic XML Processing Nodes
+      'xml-element-selector': 'XML Element Selector',
+      'xml-attribute-extractor': 'XML Attribute Extractor',
+      'nested-list-processor': 'Nested List Processor',
+      // Stream Processing Nodes
+      'lifecycle-calculator': 'Lifecycle Calculator',
+      'stream-aggregator': 'Stream Aggregator',
+      'stream-event-creator': 'Stream Event Creator',
+      'stream-metadata-extractor': 'Stream Metadata Extractor',
+      // Additional Object Creation
+      'dynamic-object-creator': 'Dynamic Object Creator',
+      'attribute-mapper': 'Attribute Mapper',
+      'context-based-linker': 'Context-Based Linker'
     };
     return titleMap[nodeType] || nodeType;
   }
@@ -283,7 +351,26 @@ export class MappingService {
       'core-metamodel': 'Construct the final CORE metamodel from events and relationships',
       'table-output': 'Display data in tabular format',
       'export-ocel': 'Export CORE metamodel to OCEL format',
-      'ocpm-discovery': 'Discover object-centric process model in browser'
+      'ocpm-discovery': 'Discover object-centric process model in browser',
+      // CAIRO XML Parsing Nodes
+      'xml-trace-extractor': 'Extract traces from XML log structure using XPath selectors',
+      'case-object-extractor': 'Create case objects from trace concept names with lifecycle data',
+      'stream-point-extractor': 'Extract stream measurement points from nested XML structures',
+      'iot-event-from-stream': 'Transform stream points into IoT events with context linking',
+      'trace-event-linker': 'Link IoT events to case objects based on trace context',
+      // Generic XML Processing Nodes
+      'xml-element-selector': 'Select XML elements using XPath expressions',
+      'xml-attribute-extractor': 'Extract specific attributes from XML elements',
+      'nested-list-processor': 'Process and flatten nested list structures from XML',
+      // Stream Processing Nodes
+      'lifecycle-calculator': 'Calculate object lifecycle from temporal stream data',
+      'stream-aggregator': 'Aggregate stream measurements by time windows or groups',
+      'stream-event-creator': 'Create structured events from stream measurement data',
+      'stream-metadata-extractor': 'Extract metadata attributes from stream structures',
+      // Additional Object Creation
+      'dynamic-object-creator': 'Create objects dynamically from attribute data sources',
+      'attribute-mapper': 'Map and transform attributes with custom expressions',
+      'context-based-linker': 'Create relationships based on shared context attributes'
     };
     return descriptionMap[nodeType] || 'Node description';
   }

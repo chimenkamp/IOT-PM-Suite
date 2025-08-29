@@ -1,37 +1,49 @@
-// src/app/services/node.service.ts - Fixed Node Service
+// src/app/services/node.service.ts - Updated with error highlighting support
 
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
-import { nodeDefinitions, NodeTemplate } from './node-definitions';
+import { nodeDefinitions, NodeTemplate, Position } from './node-definitions';
 
-export interface NodePort {
+export interface NodeHandle {
   id: string;
   color: string;
   label: string;
 }
 
-export interface Position {
-  x: number;
-  y: number;
-}
-
 export interface NodeContent {
   title: string;
-  description?: string;
-  hasFileUpload?: boolean;
+  description: string;
+  hasInput?: boolean;
+  inputPlaceholder?: string;
+  hasSelect?: boolean;
+  selectOptions?: string[];
+  selectLabel?: string;
+  configOptions?: string[];
+  hasImageDisplay?: boolean;
   displayOnly?: boolean;
-  inputFields?: any[];
   status?: string;
+  hasFileUpload?: boolean;
+  hasMultipleInputs?: boolean;
+  inputFields?: Array<{
+    key: string;
+    label: string;
+    type: 'text' | 'select' | 'number' | 'checkbox';
+    options?: string[];
+    placeholder?: string;
+    required?: boolean;
+  }>;
 }
 
 export interface FlowNode {
   id: string;
   type: string;
   position: Position;
-  inputs: NodePort[];
-  outputs: NodePort[];
+  inputs: NodeHandle[];
+  outputs: NodeHandle[];
   content: NodeContent;
   config?: Record<string, any>;
+  hasError?: boolean;
+  errorMessage?: string;
 }
 
 @Injectable({
@@ -39,135 +51,9 @@ export interface FlowNode {
 })
 export class NodeService {
   private nodesSubject = new BehaviorSubject<FlowNode[]>([]);
-  public nodes$ = this.nodesSubject.asObservable();
-  private nodeCounter = 0;
+  private nodeIdCounter = 1;
 
-  constructor() {}
-
-  /**
-   * Add a new node to the flow.
-   */
-  addNode(nodeType: string, position: Position): string {
-    const nodeId = `node-${++this.nodeCounter}`;
-    const newNode = this.createNodeFromType(nodeId, nodeType, position);
-
-    const currentNodes = this.nodesSubject.getValue();
-    this.nodesSubject.next([...currentNodes, newNode]);
-
-    console.log('Added node:', newNode);
-    return nodeId;
-  }
-
-  /**
-   * Bulk add nodes (used when loading from file).
-   * FIXED: Properly preserve positions and reset node counter.
-   */
-  bulkAddNodes(nodes: FlowNode[]): void {
-    // Ensure positions are properly formatted and nodes have complete structure
-    const processedNodes = nodes.map(node => {
-      // For loaded nodes, we don't need to replace template IDs since they should already have proper IDs
-      // But we need to ensure the node has the complete definition
-      const nodeDefinition = nodeDefinitions[node.type];
-
-      let processedInputs = node.inputs || [];
-      let processedOutputs = node.outputs || [];
-
-      // If the node has empty or missing ports, restore them from definition
-      if (nodeDefinition) {
-        if (processedInputs.length === 0 && nodeDefinition.inputs.length > 0) {
-          processedInputs = nodeDefinition.inputs.map(input => ({
-            ...input,
-            id: input.id.replace('{nodeId}', node.id)
-          }));
-        }
-
-        if (processedOutputs.length === 0 && nodeDefinition.outputs.length > 0) {
-          processedOutputs = nodeDefinition.outputs.map(output => ({
-            ...output,
-            id: output.id.replace('{nodeId}', node.id)
-          }));
-        }
-      }
-
-      return {
-        ...node,
-        position: {
-          x: Number(node.position?.x) || 0,
-          y: Number(node.position?.y) || 0
-        },
-        inputs: processedInputs,
-        outputs: processedOutputs,
-        content: node.content || { title: node.type },
-        config: node.config || {}
-      };
-    });
-
-    // Reset node counter based on loaded nodes to avoid ID conflicts
-    const maxNodeNumber = processedNodes.reduce((max, node) => {
-      const match = node.id.match(/node-(\d+)/);
-      return match ? Math.max(max, parseInt(match[1])) : max;
-    }, 0);
-
-    this.nodeCounter = maxNodeNumber;
-
-    this.nodesSubject.next(processedNodes);
-    console.log('Bulk added nodes with preserved positions and restored content:', processedNodes);
-  }
-
-  /**
-   * Get a node by ID.
-   */
-  getNodeById(nodeId: string): FlowNode | undefined {
-    return this.nodesSubject.getValue().find(node => node.id === nodeId);
-  }
-
-  /**
-   * Update node content/configuration.
-   */
-  updateNodeContent(nodeId: string, updates: Partial<FlowNode>): void {
-    const currentNodes = this.nodesSubject.getValue();
-    const updatedNodes = currentNodes.map(node =>
-      node.id === nodeId
-        ? {
-            ...node,
-            ...updates,
-            // Preserve position if not explicitly updated
-            position: updates.position || node.position
-          }
-        : node
-    );
-    this.nodesSubject.next(updatedNodes);
-  }
-
-  /**
-   * Update node position (called during drag operations).
-   */
-  updateNodePosition(nodeId: string, position: Position): void {
-    const currentNodes = this.nodesSubject.getValue();
-    const updatedNodes = currentNodes.map(node =>
-      node.id === nodeId
-        ? { ...node, position: { x: Number(position.x), y: Number(position.y) } }
-        : node
-    );
-    this.nodesSubject.next(updatedNodes);
-  }
-
-  /**
-   * Remove a node from the flow.
-   */
-  removeNode(nodeId: string): void {
-    const currentNodes = this.nodesSubject.getValue();
-    const filteredNodes = currentNodes.filter(node => node.id !== nodeId);
-    this.nodesSubject.next(filteredNodes);
-  }
-
-  /**
-   * Clear all nodes.
-   */
-  clearAllNodes(): void {
-    this.nodesSubject.next([]);
-    this.nodeCounter = 0;
-  }
+  public nodes$: Observable<FlowNode[]> = this.nodesSubject.asObservable();
 
   /**
    * Get all nodes.
@@ -177,75 +63,285 @@ export class NodeService {
   }
 
   /**
-   * Clone a node at a new position.
+   * Get node by ID.
    */
-  cloneNode(nodeId: string, newPosition: Position): string {
-    const sourceNode = this.getNodeById(nodeId);
-    if (!sourceNode) throw new Error('Node not found');
-
-    const clonedId = `node-${++this.nodeCounter}`;
-    const clonedNode: FlowNode = {
-      ...sourceNode,
-      id: clonedId,
-      position: { x: Number(newPosition.x), y: Number(newPosition.y) },
-      inputs: sourceNode.inputs.map(input => ({
-        ...input,
-        id: input.id.replace(sourceNode.id, clonedId)
-      })),
-      outputs: sourceNode.outputs.map(output => ({
-        ...output,
-        id: output.id.replace(sourceNode.id, clonedId)
-      }))
-    };
-
-    const currentNodes = this.nodesSubject.getValue();
-    this.nodesSubject.next([...currentNodes, clonedNode]);
-
-    return clonedId;
+  getNodeById(id: string): FlowNode | undefined {
+    return this.nodesSubject.getValue().find(node => node.id === id);
   }
 
   /**
-   * Create a node from type definition.
-   * FIXED: Properly replace template IDs with actual node IDs.
+   * Add a new node to the canvas.
    */
-  private createNodeFromType(nodeId: string, nodeType: string, position: Position): FlowNode {
-    // Ensure position is properly formatted
-    const validPosition = {
-      x: Number(position.x) || 0,
-      y: Number(position.y) || 0
-    };
-
-    const baseNode: FlowNode = {
-      id: nodeId,
-      type: nodeType,
-      position: validPosition,
-      inputs: [],
-      outputs: [],
-      content: { title: nodeType },
-      config: {}
-    };
-
-    const nodeDefinition = nodeDefinitions[nodeType];
-    if (nodeDefinition) {
-      // Replace template IDs with actual node IDs
-      const processedInputs = nodeDefinition.inputs.map(input => ({
-        ...input,
-        id: input.id.replace('{nodeId}', nodeId)
-      }));
-
-      const processedOutputs = nodeDefinition.outputs.map(output => ({
-        ...output,
-        id: output.id.replace('{nodeId}', nodeId)
-      }));
-
-      return {
-        ...baseNode,
-        ...nodeDefinition,
-        inputs: processedInputs,
-        outputs: processedOutputs
-      };
+  addNode(nodeType: string, position: Position): FlowNode {
+    const nodeTemplate = nodeDefinitions[nodeType];
+    if (!nodeTemplate) {
+      throw new Error(`Unknown node type: ${nodeType}`);
     }
 
-    return baseNode;
+    const nodeId = `node-${this.nodeIdCounter++}`;
+
+    const newNode: FlowNode = {
+      id: nodeId,
+      type: nodeType,
+      position,
+      inputs: nodeTemplate.inputs.map(input => ({
+        ...input,
+        id: input.id.replace('{nodeId}', nodeId)
+      })),
+      outputs: nodeTemplate.outputs.map(output => ({
+        ...output,
+        id: output.id.replace('{nodeId}', nodeId)
+      })),
+      content: { ...nodeTemplate.content },
+      config: {},
+      hasError: false
+    };
+
+    const currentNodes = this.nodesSubject.getValue();
+    this.nodesSubject.next([...currentNodes, newNode]);
+
+    console.log(`Added node: ${nodeId} of type ${nodeType} at position (${position.x}, ${position.y})`);
+    return newNode;
+  }
+
+  /**
+   * Remove a node by ID.
+   */
+  removeNode(nodeId: string): void {
+    const currentNodes = this.nodesSubject.getValue();
+    const updatedNodes = currentNodes.filter(node => node.id !== nodeId);
+    this.nodesSubject.next(updatedNodes);
+    console.log(`Removed node: ${nodeId}`);
+  }
+
+  /**
+   * Update node position.
+   */
+  updateNodePosition(nodeId: string, position: Position): void {
+    const currentNodes = this.nodesSubject.getValue();
+    const updatedNodes = currentNodes.map(node =>
+      node.id === nodeId ? { ...node, position } : node
+    );
+    this.nodesSubject.next(updatedNodes);
+  }
+
+  /**
+   * Update node configuration.
+   */
+  updateNodeConfig(nodeId: string, config: Record<string, any>): void {
+    const currentNodes = this.nodesSubject.getValue();
+    const updatedNodes = currentNodes.map(node =>
+      node.id === nodeId ? { ...node, config: { ...node.config, ...config } } : node
+    );
+    this.nodesSubject.next(updatedNodes);
+    console.log(`Updated config for node ${nodeId}:`, config);
+  }
+
+  /**
+   * Set error state for a node.
+   */
+  setNodeError(nodeId: string, hasError: boolean, errorMessage?: string): void {
+    const currentNodes = this.nodesSubject.getValue();
+    const updatedNodes = currentNodes.map(node =>
+      node.id === nodeId ? {
+        ...node,
+        hasError,
+        errorMessage: hasError ? errorMessage : undefined
+      } : node
+    );
+    this.nodesSubject.next(updatedNodes);
+    console.log(`Set error state for node ${nodeId}: ${hasError}`, errorMessage);
+  }
+
+  /**
+   * Clear all error states from nodes.
+   */
+  clearAllErrors(): void {
+    const currentNodes = this.nodesSubject.getValue();
+    const updatedNodes = currentNodes.map(node => ({
+      ...node,
+      hasError: false,
+      errorMessage: undefined
+    }));
+    this.nodesSubject.next(updatedNodes);
+    console.log('Cleared all node error states');
+  }
+
+  /**
+   * Highlight nodes with errors based on log analysis.
+   */
+  highlightErrorNodes(logs: string[]): string[] {
+    const failedNodeIds: string[] = [];
+
+    // Parse logs to find failed nodes
+    logs.forEach(log => {
+      if (log.toLowerCase().includes('failed')) {
+        // Extract node ID from log messages like "Node node-2 failed: ..."
+        const nodeIdMatch = log.match(/node-([\d]+)/);
+        if (nodeIdMatch) {
+          const nodeId = nodeIdMatch[0]; // Full match like "node-2"
+          failedNodeIds.push(nodeId);
+
+          // Extract error message
+          const errorMatch = log.match(/failed:\s*(.+)$/);
+          const errorMessage = errorMatch ? errorMatch[1] : 'Node execution failed';
+
+          this.setNodeError(nodeId, true, errorMessage);
+        }
+      }
+    });
+
+    return failedNodeIds;
+  }
+
+  /**
+   * Get nodes with errors.
+   */
+  getErrorNodes(): FlowNode[] {
+    return this.nodesSubject.getValue().filter(node => node.hasError);
+  }
+
+  /**
+   * Bulk add nodes (for importing).
+   */
+  bulkAddNodes(nodes: FlowNode[]): void {
+    // Update counter to avoid ID conflicts
+    nodes.forEach(node => {
+      const nodeNumber = parseInt(node.id.replace('node-', ''));
+      if (nodeNumber >= this.nodeIdCounter) {
+        this.nodeIdCounter = nodeNumber + 1;
+      }
+    });
+
+    this.nodesSubject.next(nodes);
+    console.log(`Bulk added ${nodes.length} nodes`);
+  }
+
+  /**
+   * Clear all nodes.
+   */
+  clearAllNodes(): void {
+    this.nodesSubject.next([]);
+    this.nodeIdCounter = 1;
+    console.log('Cleared all nodes');
+  }
+
+  /**
+   * Get node configuration validation errors.
+   */
+  validateNodeConfig(nodeId: string): { isValid: boolean; errors: string[] } {
+    const node = this.getNodeById(nodeId);
+    if (!node) {
+      return { isValid: false, errors: ['Node not found'] };
+    }
+
+    const errors: string[] = [];
+
+    if (node.content.inputFields) {
+      node.content.inputFields
+        .filter(field => field.required)
+        .forEach(field => {
+          const value = node.config?.[field.key];
+          if (!value || (typeof value === 'string' && value.trim() === '')) {
+            errors.push(`${field.label} is required`);
+          }
+        });
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors
+    };
+  }
+
+  /**
+   * Get node statistics.
+   */
+  getNodeStatistics(): {
+    total: number;
+    byType: Record<string, number>;
+    withErrors: number;
+    configured: number;
+  } {
+    const nodes = this.nodesSubject.getValue();
+
+    const byType: Record<string, number> = {};
+    let withErrors = 0;
+    let configured = 0;
+
+    nodes.forEach(node => {
+      // Count by type
+      byType[node.type] = (byType[node.type] || 0) + 1;
+
+      // Count errors
+      if (node.hasError) {
+        withErrors++;
+      }
+
+      // Count configured (has at least one config value)
+      if (node.config && Object.keys(node.config).length > 0) {
+        configured++;
+      }
+    });
+
+    return {
+      total: nodes.length,
+      byType,
+      withErrors,
+      configured
+    };
+  }
+
+  /**
+   * Export nodes data for debugging.
+   */
+  exportNodesData(): any {
+    return {
+      nodes: this.nodesSubject.getValue(),
+      nodeIdCounter: this.nodeIdCounter,
+      statistics: this.getNodeStatistics()
+    };
+  }
+
+  /**
+   * Animate error highlight for a specific node.
+   */
+  flashErrorNode(nodeId: string): void {
+    const node = this.getNodeById(nodeId);
+    if (!node) return;
+
+    // Set temporary error state for visual feedback
+    this.setNodeError(nodeId, true, 'Execution failed');
+
+    // Clear after animation duration
+    setTimeout(() => {
+      // Only clear if this was a temporary flash (no persistent error message)
+      if (node.errorMessage === 'Execution failed') {
+        this.setNodeError(nodeId, false);
+      }
+    }, 2000);
+  }
+
+  /**
+   * Get nodes by execution order (for highlighting execution flow).
+   */
+  getExecutionPath(startNodeId: string): string[] {
+    // This would implement a topological sort to determine execution order
+    // For now, return a simple path based on connections
+    const nodes = this.nodesSubject.getValue();
+    const visited = new Set<string>();
+    const path: string[] = [];
+
+    const traverse = (nodeId: string) => {
+      if (visited.has(nodeId)) return;
+      visited.add(nodeId);
+      path.push(nodeId);
+
+      // In a real implementation, this would follow connection relationships
+      // to determine the next nodes in the execution path
+    };
+
+    traverse(startNodeId);
+    return path;
   }
 }

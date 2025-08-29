@@ -1,4 +1,3 @@
-// src/app/services/node-definitions.ts
 
 export interface NodeHandle {
   id: string;
@@ -11,6 +10,7 @@ export interface NodeContent {
   description: string;
   hasInput?: boolean;
   inputPlaceholder?: string;
+  hasImageDisplay?: boolean;
   hasSelect?: boolean;
   selectOptions?: string[];
   selectLabel?: string;
@@ -78,7 +78,501 @@ export const nodeDefinitions: Record<string, NodeTemplate> = {
     }
   },
 
-  // ============ DATA PROCESSING NODES ============
+  // ============ CAIRO XML PARSING NODES ============
+  'xml-trace-extractor': {
+    inputs: [{ id: '{nodeId}-input-0', color: 'nord-blue', label: 'XML Data' }],
+    outputs: [{ id: '{nodeId}-output-0', color: 'nord-red', label: 'Traces' }],
+    content: {
+      title: 'XML Trace Extractor',
+      description: 'Extract traces from XML log structure (CAIRO format)',
+      inputFields: [
+        {
+          key: 'traceXPath',
+          label: 'Trace XPath',
+          type: 'text',
+          placeholder: 'log/trace',
+          required: true
+        },
+        {
+          key: 'traceIdentifier',
+          label: 'Trace ID Attribute',
+          type: 'text',
+          placeholder: 'concept:name',
+          required: true
+        }
+      ]
+    }
+  },
+
+  'case-object-extractor': {
+    inputs: [{ id: '{nodeId}-input-0', color: 'nord-red', label: 'Traces' }],
+    outputs: [{ id: '{nodeId}-output-0', color: 'nord-purple', label: 'Case Objects' }],
+    content: {
+      title: 'Case Object Extractor',
+      description: 'Extract case objects from trace data with lifecycle information',
+      inputFields: [
+        {
+          key: 'caseIdAttribute',
+          label: 'Case ID Attribute',
+          type: 'text',
+          placeholder: 'concept:name',
+          required: true
+        },
+        {
+          key: 'objectType',
+          label: 'Object Type',
+          type: 'text',
+          placeholder: 'case_object',
+          required: true
+        },
+        {
+          key: 'extractLifecycle',
+          label: 'Extract Lifecycle',
+          type: 'checkbox',
+          required: false
+        }
+      ]
+    }
+  },
+
+  'stream-point-extractor': {
+    inputs: [{ id: '{nodeId}-input-0', color: 'nord-red', label: 'Traces' }],
+    outputs: [{ id: '{nodeId}-output-0', color: 'nord-red', label: 'Stream Points' }],
+    content: {
+      title: 'Stream Point Extractor',
+      description: 'Extract stream points from trace data structure',
+      inputFields: [
+        {
+          key: 'streamPointsPath',
+          label: 'Stream Points Path',
+          type: 'text',
+          placeholder: 'list/list/list',
+          required: true
+        },
+        {
+          key: 'timestampField',
+          label: 'Timestamp Field',
+          type: 'text',
+          placeholder: 'date',
+          required: true
+        },
+        {
+          key: 'eventDataPath',
+          label: 'Event Data Path',
+          type: 'text',
+          placeholder: 'string',
+          required: true
+        }
+      ]
+    }
+  },
+
+  'iot-event-from-stream': {
+    inputs: [
+      { id: '{nodeId}-input-0', color: 'nord-red', label: 'Stream Points' },
+      { id: '{nodeId}-input-1', color: 'nord-yellow', label: 'Case ID' }
+    ],
+    outputs: [{ id: '{nodeId}-output-0', color: 'nord-green', label: 'IoT Events' }],
+    content: {
+      title: 'IoT Event From Stream',
+      description: 'Create IoT events from stream point data with case context',
+      inputFields: [
+        {
+          key: 'streamIdField',
+          label: 'Stream ID Field',
+          type: 'text',
+          placeholder: 'stream:id',
+          required: true
+        },
+        {
+          key: 'streamSourceField',
+          label: 'Stream Source Field',
+          type: 'text',
+          placeholder: 'stream:source',
+          required: true
+        },
+        {
+          key: 'streamValueField',
+          label: 'Stream Value Field',
+          type: 'text',
+          placeholder: 'stream:value',
+          required: true
+        },
+        {
+          key: 'eventClass',
+          label: 'Event Class',
+          type: 'select',
+          options: ['iot_event', 'sensor_event', 'measurement_event'],
+          required: true
+        }
+      ]
+    }
+  },
+
+  'trace-event-linker': {
+    inputs: [
+      { id: '{nodeId}-input-0', color: 'nord-green', label: 'IoT Events' },
+      { id: '{nodeId}-input-1', color: 'nord-purple', label: 'Case Objects' }
+    ],
+    outputs: [{ id: '{nodeId}-output-0', color: 'nord-orange', label: 'E-O Relationships' }],
+    content: {
+      title: 'Trace Event Linker',
+      description: 'Link IoT events to their corresponding case objects',
+      inputFields: [
+        {
+          key: 'linkingAttribute',
+          label: 'Linking Attribute',
+          type: 'text',
+          placeholder: 'concept:name',
+          required: true
+        },
+        {
+          key: 'relationshipType',
+          label: 'Relationship Type',
+          type: 'select',
+          options: ['belongs_to', 'involves', 'executes', 'monitors'],
+          required: true
+        }
+      ]
+    }
+  },
+
+  // ============ GENERIC XML PROCESSING NODES ============
+  'xml-element-selector': {
+    inputs: [{ id: '{nodeId}-input-0', color: 'nord-blue', label: 'XML Data' }],
+    outputs: [{ id: '{nodeId}-output-0', color: 'nord-red', label: 'Elements' }],
+    content: {
+      title: 'XML Element Selector',
+      description: 'Select specific elements from XML structure using XPath',
+      inputFields: [
+        {
+          key: 'xpath',
+          label: 'XPath Expression',
+          type: 'text',
+          placeholder: '//trace | //event | //string[@key="concept:name"]',
+          required: true
+        },
+        {
+          key: 'outputFormat',
+          label: 'Output Format',
+          type: 'select',
+          options: ['Element List', 'Text Values', 'Attribute Values'],
+          required: true
+        }
+      ]
+    }
+  },
+
+  'xml-attribute-extractor': {
+    inputs: [{ id: '{nodeId}-input-0', color: 'nord-red', label: 'XML Elements' }],
+    outputs: [{ id: '{nodeId}-output-0', color: 'nord-yellow', label: 'Attributes' }],
+    content: {
+      title: 'XML Attribute Extractor',
+      description: 'Extract attributes from XML elements',
+      inputFields: [
+        {
+          key: 'attributeName',
+          label: 'Attribute Name',
+          type: 'text',
+          placeholder: 'key | value | concept:name',
+          required: true
+        },
+        {
+          key: 'defaultValue',
+          label: 'Default Value',
+          type: 'text',
+          placeholder: 'Value if attribute not found',
+          required: false
+        },
+        {
+          key: 'dataType',
+          label: 'Expected Data Type',
+          type: 'select',
+          options: ['string', 'number', 'date', 'boolean'],
+          required: false
+        }
+      ]
+    }
+  },
+
+  'nested-list-processor': {
+    inputs: [{ id: '{nodeId}-input-0', color: 'nord-red', label: 'Nested Data' }],
+    outputs: [{ id: '{nodeId}-output-0', color: 'nord-red', label: 'Flattened Data' }],
+    content: {
+      title: 'Nested List Processor',
+      description: 'Process nested list structures from XML (list/list/list)',
+      inputFields: [
+        {
+          key: 'nestingDepth',
+          label: 'Nesting Depth',
+          type: 'number',
+          placeholder: '3',
+          required: true
+        },
+        {
+          key: 'processingMode',
+          label: 'Processing Mode',
+          type: 'select',
+          options: ['Flatten All', 'Extract Level', 'Preserve Structure'],
+          required: true
+        },
+        {
+          key: 'targetLevel',
+          label: 'Target Level (if Extract Level)',
+          type: 'number',
+          placeholder: '2',
+          required: false
+        }
+      ]
+    }
+  },
+
+  // ============ TEMPORAL DATA PROCESSING NODES ============
+  'lifecycle-calculator': {
+    inputs: [{ id: '{nodeId}-input-0', color: 'nord-red', label: 'Stream Points' }],
+    outputs: [{ id: '{nodeId}-output-0', color: 'nord-yellow', label: 'Lifecycle Data' }],
+    content: {
+      title: 'Lifecycle Calculator',
+      description: 'Calculate lifecycle start/end times from stream data',
+      inputFields: [
+        {
+          key: 'timestampField',
+          label: 'Timestamp Field',
+          type: 'text',
+          placeholder: 'date/@value',
+          required: true
+        },
+        {
+          key: 'calculationMode',
+          label: 'Calculation Mode',
+          type: 'select',
+          options: ['First-Last', 'Min-Max', 'Custom Range'],
+          required: true
+        },
+        {
+          key: 'outputFormat',
+          label: 'Output Format',
+          type: 'select',
+          options: ['ISO String', 'Timestamp', 'Duration'],
+          required: true
+        }
+      ]
+    }
+  },
+
+  'stream-aggregator': {
+    inputs: [{ id: '{nodeId}-input-0', color: 'nord-red', label: 'Stream Points' }],
+    outputs: [{ id: '{nodeId}-output-0', color: 'nord-red', label: 'Aggregated Data' }],
+    content: {
+      title: 'Stream Aggregator',
+      description: 'Aggregate stream data by time windows or event groups',
+      inputFields: [
+        {
+          key: 'aggregationField',
+          label: 'Aggregation Field',
+          type: 'text',
+          placeholder: 'stream:value',
+          required: true
+        },
+        {
+          key: 'aggregationFunction',
+          label: 'Aggregation Function',
+          type: 'select',
+          options: ['mean', 'sum', 'count', 'min', 'max', 'std'],
+          required: true
+        },
+        {
+          key: 'groupByField',
+          label: 'Group By Field',
+          type: 'text',
+          placeholder: 'stream:source',
+          required: false
+        },
+        {
+          key: 'timeWindow',
+          label: 'Time Window (seconds)',
+          type: 'number',
+          placeholder: '60',
+          required: false
+        }
+      ]
+    }
+  },
+
+  // ============ GENERIC OBJECT CREATION NODES ============
+  'dynamic-object-creator': {
+    inputs: [
+      { id: '{nodeId}-input-0', color: 'nord-yellow', label: 'Object ID' },
+      { id: '{nodeId}-input-1', color: 'nord-yellow', label: 'Object Type' },
+      { id: '{nodeId}-input-2', color: 'nord-red', label: 'Attributes Data' }
+    ],
+    outputs: [{ id: '{nodeId}-output-0', color: 'nord-purple', label: 'Objects' }],
+    content: {
+      title: 'Dynamic Object Creator',
+      description: 'Create objects dynamically from attribute data',
+      inputFields: [
+        {
+          key: 'objectClass',
+          label: 'Object Class',
+          type: 'select',
+          options: ['CASE_OBJECT', 'SENSOR', 'INFORMATION_SYSTEM', 'BUSINESS_OBJECT', 'RESOURCE'],
+          required: true
+        },
+        {
+          key: 'attributeMapping',
+          label: 'Attribute Mapping (JSON)',
+          type: 'text',
+          placeholder: '{"concept:name": "id_field", "lifecycle:start": "start_field"}',
+          required: false
+        }
+      ]
+    }
+  },
+
+  'attribute-mapper': {
+    inputs: [{ id: '{nodeId}-input-0', color: 'nord-red', label: 'Source Data' }],
+    outputs: [{ id: '{nodeId}-output-0', color: 'nord-yellow', label: 'Mapped Attributes' }],
+    content: {
+      title: 'Attribute Mapper',
+      description: 'Map and transform attributes from source data',
+      inputFields: [
+        {
+          key: 'sourceField',
+          label: 'Source Field',
+          type: 'text',
+          placeholder: 'string/@value',
+          required: true
+        },
+        {
+          key: 'targetAttribute',
+          label: 'Target Attribute',
+          type: 'text',
+          placeholder: 'concept:name',
+          required: true
+        },
+        {
+          key: 'transformation',
+          label: 'Transformation',
+          type: 'select',
+          options: ['none', 'to_string', 'to_number', 'to_date', 'extract_uuid'],
+          required: false
+        },
+        {
+          key: 'prefix',
+          label: 'Value Prefix',
+          type: 'text',
+          placeholder: 'event_',
+          required: false
+        }
+      ]
+    }
+  },
+
+  // ============ STREAM PROCESSING NODES ============
+  'stream-event-creator': {
+    inputs: [
+      { id: '{nodeId}-input-0', color: 'nord-red', label: 'Stream Points' },
+      { id: '{nodeId}-input-1', color: 'nord-yellow', label: 'Case Context' }
+    ],
+    outputs: [{ id: '{nodeId}-output-0', color: 'nord-green', label: 'Stream Events' }],
+    content: {
+      title: 'Stream Event Creator',
+      description: 'Create events from individual stream measurement points',
+      inputFields: [
+        {
+          key: 'eventIdPattern',
+          label: 'Event ID Pattern',
+          type: 'text',
+          placeholder: '{uuid8}-{stream_id}',
+          required: true
+        },
+        {
+          key: 'eventClass',
+          label: 'Event Class',
+          type: 'select',
+          options: ['iot_event', 'sensor_event', 'measurement_event', 'observation_event'],
+          required: true
+        },
+        {
+          key: 'timestampMapping',
+          label: 'Timestamp Field Mapping',
+          type: 'text',
+          placeholder: 'date/@value',
+          required: true
+        }
+      ]
+    }
+  },
+
+  'stream-metadata-extractor': {
+    inputs: [{ id: '{nodeId}-input-0', color: 'nord-red', label: 'Stream Points' }],
+    outputs: [{ id: '{nodeId}-output-0', color: 'nord-yellow', label: 'Stream Metadata' }],
+    content: {
+      title: 'Stream Metadata Extractor',
+      description: 'Extract metadata from stream measurement points',
+      inputFields: [
+        {
+          key: 'metadataFields',
+          label: 'Metadata Fields (JSON)',
+          type: 'text',
+          placeholder: '["stream:source", "stream:value", "stream:id"]',
+          required: true
+        },
+        {
+          key: 'keyAttribute',
+          label: 'Key Attribute',
+          type: 'text',
+          placeholder: '@key',
+          required: true
+        },
+        {
+          key: 'valueAttribute',
+          label: 'Value Attribute',
+          type: 'text',
+          placeholder: '@value',
+          required: true
+        }
+      ]
+    }
+  },
+
+  // ============ RELATIONSHIP CREATION NODES ============
+  'context-based-linker': {
+    inputs: [
+      { id: '{nodeId}-input-0', color: 'nord-green', label: 'Events' },
+      { id: '{nodeId}-input-1', color: 'nord-purple', label: 'Objects' }
+    ],
+    outputs: [{ id: '{nodeId}-output-0', color: 'nord-orange', label: 'Context Relationships' }],
+    content: {
+      title: 'Context-Based Linker',
+      description: 'Create relationships based on shared context attributes',
+      inputFields: [
+        {
+          key: 'contextAttribute',
+          label: 'Context Attribute',
+          type: 'text',
+          placeholder: 'concept:name',
+          required: true
+        },
+        {
+          key: 'relationshipType',
+          label: 'Relationship Type',
+          type: 'select',
+          options: ['belongs_to', 'monitors', 'observes', 'measures', 'tracks'],
+          required: true
+        },
+        {
+          key: 'matchingStrategy',
+          label: 'Matching Strategy',
+          type: 'select',
+          options: ['exact_match', 'contains', 'starts_with', 'regex'],
+          required: true
+        }
+      ]
+    }
+  },
+
+  // ============ EXISTING DATA PROCESSING NODES ============
   'column-selector': {
     inputs: [{ id: '{nodeId}-input-0', color: 'nord-blue', label: 'Raw Data' }],
     outputs: [{ id: '{nodeId}-output-0', color: 'nord-red', label: 'Series' }],
@@ -347,7 +841,8 @@ export const nodeDefinitions: Record<string, NodeTemplate> = {
     inputs: [
       { id: '{nodeId}-input-0', color: 'nord-green', label: 'Process Events' },
       { id: '{nodeId}-input-1', color: 'nord-green', label: 'IoT Events' },
-      { id: '{nodeId}-input-2', color: 'nord-orange', label: 'Relationships' }
+      { id: '{nodeId}-input-2', color: 'nord-orange', label: 'Relationships' },
+      { id: '{nodeId}-input-3', color: 'nord-purple', label: 'Objects' }
     ],
     outputs: [{ id: '{nodeId}-output-0', color: 'core-model', label: 'CORE Metamodel' }],
     content: {
@@ -409,6 +904,8 @@ export const nodeDefinitions: Record<string, NodeTemplate> = {
     content: {
       title: 'OCPM Model Discovery',
       description: 'Discover object-centric process model in browser',
+      displayOnly: true, // This makes it a display node
+      hasImageDisplay: true, // New property for image display capability
       inputFields: [
         {
           key: 'algorithm',
@@ -420,6 +917,12 @@ export const nodeDefinitions: Record<string, NodeTemplate> = {
         {
           key: 'filterNoise',
           label: 'Filter Noise',
+          type: 'checkbox',
+          required: false
+        },
+        {
+          key: 'showStatistics',
+          label: 'Show Discovery Statistics',
           type: 'checkbox',
           required: false
         }

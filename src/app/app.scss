@@ -450,3 +450,205 @@
     font-size: 0.65rem;
   }
 }
+// ============ EXECUTION STATUS ============
+.execution-status {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  border-radius: 6px;
+  border: 1px solid #434c5e;
+  background-color: #3b4252;
+
+  .status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+
+    .status-icon {
+      font-size: 0.9rem;
+    }
+
+    .status-text {
+      color: #eceff4;
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+  }
+
+  .view-logs-btn {
+    padding: 0.4rem 0.6rem;
+    background-color: #5e81ac;
+    color: #eceff4;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+
+    &:hover {
+      background-color: #81a1c1;
+    }
+  }
+
+  &.idle {
+    border-color: #434c5e;
+    background-color: #3b4252;
+  }
+
+  &.running {
+    border-color: #d08770;
+    background-color: rgba(208, 135, 112, 0.1);
+
+    .status-text {
+      color: #d08770;
+    }
+  }
+
+  &.success {
+    border-color: #a3be8c;
+    background-color: rgba(163, 190, 140, 0.1);
+
+    .status-text {
+      color: #a3be8c;
+    }
+  }
+
+  &.partial {
+    border-color: #ebcb8b;
+    background-color: rgba(235, 203, 139, 0.1);
+
+    .status-text {
+      color: #ebcb8b;
+    }
+  }
+
+  &.failed {
+    border-color: #bf616a;
+    background-color: rgba(191, 97, 106, 0.1);
+
+    .status-text {
+      color: #bf616a;
+    }
+  }
+}
+
+// ============ NODE ERROR HIGHLIGHTING ============
+.node-error {
+  border: 2px solid #bf616a !important;
+  background-color: rgba(191, 97, 106, 0.1) !important;
+  box-shadow: 0 0 10px rgba(191, 97, 106, 0.3) !important;
+  animation: error-pulse 2s ease-in-out infinite;
+
+  &::after {
+    content: '⚠️';
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background-color: #bf616a;
+    color: white;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    z-index: 1000;
+  }
+}
+
+@keyframes error-pulse {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(191, 97, 106, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(191, 97, 106, 0.6);
+  }
+}
+
+// ============ CONNECTION STATUS ============
+.connection-status {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 20px;
+  background-color: #3b4252;
+  border: 1px solid #434c5e;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  z-index: 1000;
+  transition: all 0.3s ease;
+
+  .status-icon {
+    font-size: 0.7rem;
+  }
+
+  .status-text {
+    color: #eceff4;
+    font-weight: 500;
+  }
+
+  &.connected {
+    border-color: #a3be8c;
+    background-color: rgba(163, 190, 140, 0.1);
+
+    .status-text {
+      color: #a3be8c;
+    }
+  }
+
+  &.disconnected {
+    border-color: #bf616a;
+    background-color: rgba(191, 97, 106, 0.1);
+
+    .status-text {
+      color: #bf616a;
+    }
+  }
+}
+
+// ============ LOG DIALOG OVERRIDES ============
+.cdk-overlay-pane {
+  .log-dialog {
+    .mat-mdc-dialog-container {
+      --mdc-dialog-container-color: #2e3440;
+      --mdc-dialog-subhead-color: #eceff4;
+      --mdc-dialog-supporting-text-color: #d8dee9;
+    }
+
+    .mat-mdc-button {
+      --mdc-text-button-label-text-color: #88c0d0;
+
+      &.mat-primary {
+        --mdc-filled-button-container-color: #5e81ac;
+        --mdc-filled-button-label-text-color: #eceff4;
+      }
+    }
+
+    .mat-mdc-chip {
+      --mdc-chip-label-text-color: #eceff4;
+      --mdc-chip-outline-color: #434c5e;
+    }
+  }
+}
+
+// ============ SNACKBAR OVERRIDES ============
+.mat-mdc-snack-bar-container {
+  --mdc-snackbar-container-color: #3b4252;
+  --mdc-snackbar-supporting-text-color: #eceff4;
+
+  .mdc-snackbar__action {
+    --mdc-snackbar-action-label-text-color: #88c0d0;
+  }
+}
+
+// ============ RESPONSIVE DESIGN ============
+@media (max-width: 1400px) {
+  .sidebar {
+    width: 320px;
+    min-width: 320px;
+  }
+}

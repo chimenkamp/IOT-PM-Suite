@@ -1,4 +1,4 @@
-// src/app/services/pipeline.service.ts - Complete Pipeline Service
+// src/app/services/pipeline.service.ts
 
 import { Injectable } from '@angular/core';
 import { NodeService, FlowNode } from './node.service';
@@ -58,7 +58,8 @@ export interface ExecutionResult {
   providedIn: 'root'
 })
 export class PipelineService {
-  private readonly backendUrl = 'https://iot-pm-suite-backend.onrender.com/api'; // Updated port
+  private readonly backendUrl = 'http://localhost:5100/api';
+  // private readonly backendUrl = 'https://iot-pm-suite-backend.onrender.com/api'; // Updated port
 
   constructor(
     private nodeService: NodeService,
@@ -176,16 +177,14 @@ export class PipelineService {
       }
     });
 
-    // Check for required node configurations
+    // Check for required node configurations (expanded for CAIRO nodes)
     nodes.forEach(node => {
-      if (node.content.inputFields) {
-        const missingRequired = node.content.inputFields
-          .filter((field: any) => field.required && !node.config?.[field.key])
-          .map((field: any) => field.label);
-
-        if (missingRequired.length > 0) {
-          errors.push(`Node "${node.content.title}": Missing required configuration: ${missingRequired.join(', ')}`);
-        }
+      const validation = this.validateNodeConfiguration(node);
+      if (validation.errors.length > 0) {
+        errors.push(`Node "${node.content.title}": ${validation.errors.join(', ')}`);
+      }
+      if (validation.warnings.length > 0) {
+        warnings.push(`Node "${node.content.title}": ${validation.warnings.join(', ')}`);
       }
     });
 
@@ -199,6 +198,126 @@ export class PipelineService {
       errors,
       warnings
     };
+  }
+
+  /**
+   * Validate individual node configuration (expanded for CAIRO nodes).
+   */
+  private validateNodeConfiguration(node: FlowNode): { errors: string[]; warnings: string[] } {
+    const errors: string[] = [];
+    const warnings: string[] = [];
+
+    if (node.content.inputFields) {
+      const missingRequired = node.content.inputFields
+        .filter((field: any) => field.required && !node.config?.[field.key])
+        .map((field: any) => field.label);
+
+      if (missingRequired.length > 0) {
+        errors.push(`Missing required configuration: ${missingRequired.join(', ')}`);
+      }
+    }
+
+    // CAIRO-specific validations
+    switch (node.type) {
+      case 'xml-trace-extractor':
+        if (!node.config['traceXPath']) {
+          errors.push('XPath expression for traces is required');
+        }
+        if (!node.config['traceIdentifier']) {
+          errors.push('Trace identifier attribute is required');
+        }
+        break;
+
+      case 'case-object-extractor':
+        if (!node.config['caseIdAttribute']) {
+          errors.push('Case ID attribute is required');
+        }
+        if (!node.config['objectType']) {
+          errors.push('Object type must be specified');
+        }
+        break;
+
+      case 'stream-point-extractor':
+        if (!node.config['streamPointsPath']) {
+          errors.push('Stream points path is required');
+        }
+        if (!node.config['timestampField']) {
+          errors.push('Timestamp field mapping is required');
+        }
+        break;
+
+      case 'iot-event-from-stream':
+        if (!node.config['streamIdField']) {
+          errors.push('Stream ID field is required');
+        }
+        if (!node.config['eventClass']) {
+          errors.push('Event class must be selected');
+        }
+        break;
+
+      case 'xml-element-selector':
+        if (!node.config['xpath']) {
+          errors.push('XPath expression is required');
+        }
+        if (!node.config['outputFormat']) {
+          errors.push('Output format must be selected');
+        }
+        break;
+
+      case 'stream-aggregator':
+        if (!node.config['aggregationField']) {
+          errors.push('Aggregation field is required');
+        }
+        if (!node.config['aggregationFunction']) {
+          errors.push('Aggregation function must be selected');
+        }
+        break;
+
+      case 'attribute-mapper':
+        if (!node.config['sourceField']) {
+          errors.push('Source field is required');
+        }
+        if (!node.config['targetAttribute']) {
+          errors.push('Target attribute is required');
+        }
+        break;
+
+      case 'context-based-linker':
+        if (!node.config['contextAttribute']) {
+          errors.push('Context attribute is required');
+        }
+        if (!node.config['relationshipType']) {
+          errors.push('Relationship type must be selected');
+        }
+        break;
+
+      // Existing validations
+      case 'read-file':
+        if (!node.config['fileName']) {
+          errors.push('File must be selected');
+        }
+        if (!node.config['fileType']) {
+          errors.push('File type must be specified');
+        }
+        break;
+
+      case 'column-selector':
+        if (!node.config['columnName']) {
+          errors.push('Column name must be specified');
+        }
+        break;
+
+      case 'data-filter':
+        if (!node.config['condition']) {
+          errors.push('Filter condition must be specified');
+        }
+        if (!node.config['operator']) {
+          errors.push('Filter operator must be selected');
+        }
+        break;
+    }
+
+    return { errors, warnings };
   }
 
   /**
@@ -284,7 +403,7 @@ export class PipelineService {
   }
 
   /**
-   * Map color codes to data types.
+   * Map color codes to data types (expanded for CAIRO nodes).
    */
   private mapColorToDataType(color: string): string {
     const colorMap: Record<string, string> = {
@@ -294,7 +413,17 @@ export class PipelineService {
       'nord-green': 'Event',
       'nord-purple': 'Object',
       'nord-orange': 'Relationship',
-      'core-model': 'COREModel'
+      'core-model': 'COREModel',
+      // New data types for CAIRO parsing
+      'traces': 'Traces',
+      'stream-points': 'StreamPoints',
+      'stream-events': 'StreamEvents',
+      'stream-metadata': 'StreamMetadata',
+      'lifecycle-data': 'LifecycleData',
+      'elements': 'Elements',
+      'flattened-data': 'FlattenedData',
+      'context-relationships': 'ContextRelationships',
+      'mapped-attributes': 'MappedAttributes'
     };
     return colorMap[color] || 'Unknown';
   }
@@ -411,22 +540,91 @@ export class PipelineService {
   }
 
   /**
-   * Create a sample pipeline for testing.
+   * Create a sample CAIRO pipeline for testing.
    */
-  createSamplePipeline(): PipelineDefinition {
+  createSampleCAIROPipeline(): PipelineDefinition {
     return {
-      id: 'sample-pipeline',
-      name: 'Sample IoT Pipeline',
-      description: 'A sample pipeline for IoT data processing',
+      id: 'cairo-sample-pipeline',
+      name: 'Sample CAIRO XML Processing Pipeline',
+      description: 'A sample pipeline for processing CAIRO XML sensor stream data',
       version: '1.0.0',
       createdAt: new Date().toISOString(),
-      nodes: [],
-      connections: []
+      nodes: [
+        {
+          id: 'node-1',
+          type: 'read-file',
+          position: { x: 100, y: 100 },
+          config: { fileType: 'XML' },
+          inputs: [],
+          outputs: [{ id: 'node-1-output-0', name: 'Raw Data', dataType: 'DataFrame' }]
+        },
+        {
+          id: 'node-2',
+          type: 'xml-trace-extractor',
+          position: { x: 400, y: 100 },
+          config: { traceXPath: 'log/trace', traceIdentifier: 'concept:name' },
+          inputs: [{ id: 'node-2-input-0', name: 'XML Data', dataType: 'DataFrame' }],
+          outputs: [{ id: 'node-2-output-0', name: 'Traces', dataType: 'Series' }]
+        },
+        {
+          id: 'node-3',
+          type: 'case-object-extractor',
+          position: { x: 100, y: 300 },
+          config: { caseIdAttribute: 'concept:name', objectType: 'case_object', extractLifecycle: true },
+          inputs: [{ id: 'node-3-input-0', name: 'Traces', dataType: 'Series' }],
+          outputs: [{ id: 'node-3-output-0', name: 'Case Objects', dataType: 'Object' }]
+        },
+        {
+          id: 'node-4',
+          type: 'stream-point-extractor',
+          position: { x: 700, y: 100 },
+          config: { streamPointsPath: 'list/list/list', timestampField: 'date', eventDataPath: 'string' },
+          inputs: [{ id: 'node-4-input-0', name: 'Traces', dataType: 'Series' }],
+          outputs: [{ id: 'node-4-output-0', name: 'Stream Points', dataType: 'Series' }]
+        },
+        {
+          id: 'node-5',
+          type: 'iot-event-from-stream',
+          position: { x: 700, y: 300 },
+          config: { streamIdField: 'stream:id', streamSourceField: 'stream:source', streamValueField: 'stream:value', eventClass: 'iot_event' },
+          inputs: [
+            { id: 'node-5-input-0', name: 'Stream Points', dataType: 'Series' },
+            { id: 'node-5-input-1', name: 'Case ID', dataType: 'Attribute' }
+          ],
+          outputs: [{ id: 'node-5-output-0', name: 'IoT Events', dataType: 'Event' }]
+        }
+      ],
+      connections: [
+        {
+          id: 'connection-1',
+          fromNodeId: 'node-1',
+          fromPortId: 'node-1-output-0',
+          toNodeId: 'node-2',
+          toPortId: 'node-2-input-0',
+          dataType: 'DataFrame'
+        },
+        {
+          id: 'connection-2',
+          fromNodeId: 'node-2',
+          fromPortId: 'node-2-output-0',
+          toNodeId: 'node-3',
+          toPortId: 'node-3-input-0',
+          dataType: 'Series'
+        },
+        {
+          id: 'connection-3',
+          fromNodeId: 'node-2',
+          fromPortId: 'node-2-output-0',
+          toNodeId: 'node-4',
+          toPortId: 'node-4-input-0',
+          dataType: 'Series'
+        }
+      ]
     };
   }
 
   /**
-   * Get pipeline templates.
+   * Get pipeline templates (expanded with CAIRO template).
    */
   getPipelineTemplates(): PipelineDefinition[] {
     return [
@@ -443,6 +641,15 @@ export class PipelineService {
         id: 'process-mining',
         name: 'Process Mining Pipeline',
         description: 'Pipeline for process mining analysis',
+        version: '1.0.0',
+        createdAt: new Date().toISOString(),
+        nodes: [],
+        connections: []
+      },
+      {
+        id: 'cairo-xml',
+        name: 'CAIRO XML Processing',
+        description: 'Pipeline for processing CAIRO XML sensor stream logs',
         version: '1.0.0',
         createdAt: new Date().toISOString(),
         nodes: [],

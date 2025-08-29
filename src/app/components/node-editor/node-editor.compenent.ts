@@ -1,4 +1,4 @@
-// src/app/components/node-editor/node-editor.component.ts - Position Fix
+// src/app/components/node-editor/node-editor.component.ts - Complete file with image display functionality
 
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject, OnDestroy, OnInit, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -21,7 +21,6 @@ interface NodeStatus {
   selector: 'app-node-editor',
   standalone: true,
   imports: [CommonModule, FFlowModule, FormsModule],
-  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <f-flow
       fDraggable
@@ -44,192 +43,329 @@ interface NodeStatus {
         @for (node of this.nodes$ | async; track $index) {
           <div
             class="generic-node"
+            [class.node-error]="node.hasError"
+            [class.selected]="selectedNodeId === node.id"
+            [class.has-image]="node.content.hasImageDisplay && node.config?.['processImageUrl']"
             fNode
             fDragHandle
             [fNodeId]="node.id"
             [fNodePosition]="{ x: node.position.x, y: node.position.y }"
-            [class.selected]="selectedNodeId === node.id"
             (click)="selectNode(node.id)"
           >
-            <!-- Input ports -->
-            <div class="ports-container inputs" *ngIf="node.inputs.length > 0">
-              <div *ngFor="let input of node.inputs" class="port-group">
-                <div
-                  fNodeInput
-                  [fInputId]="input.id"
-                  [fInputMultiple]="true"
-                  [class]="'port input-port ' + input.color"
-                  [title]="input.label + ' (' + getDataTypeFromColor(input.color) + ')'"
-                ></div>
-                <span class="port-label">{{ input.label }}</span>
+            <!-- Error Indicator -->
+            @if (node.hasError) {
+              <div class="error-badge" [title]="node.errorMessage || 'Node execution failed'">
+                ⚠️
               </div>
-            </div>
+            }
+
+            <!-- Input ports -->
+            @if (node.inputs.length > 0) {
+              <div class="ports-container inputs">
+                @for (input of node.inputs; track input.id) {
+                  <div class="port-group">
+                    <div
+                      fNodeInput
+                      [fInputId]="input.id"
+                      [fInputMultiple]="true"
+                      [class]="'port input-port ' + input.color"
+                      [title]="input.label + ' (' + getDataTypeFromColor(input.color) + ')'"
+                    ></div>
+                    <span class="port-label">{{ input.label }}</span>
+                  </div>
+                }
+              </div>
+            }
 
             <!-- Node Header -->
-            <div class="node-header">
+            <div class="node-header" [class.has-error]="node.hasError">
               <h4 class="node-title">{{ node.content.title }}</h4>
-              <p class="node-description" *ngIf="node.content.description">{{ node.content.description }}</p>
+              @if (node.content.description) {
+                <p class="node-description">{{ node.content.description }}</p>
+              }
 
               <!-- Status indicator for executable nodes -->
-              <div class="node-status" *ngIf="getNodeStatus(node) as status">
-                <span [class]="'status-indicator ' + status.type">{{ status.message }}</span>
-              </div>
+              @if (getNodeStatus(node); as status) {
+                <div class="node-status">
+                  <span [class]="'status-indicator ' + status.type">{{ status.message }}</span>
+                </div>
+              }
+
+              <!-- Error message display -->
+              @if (node.hasError && node.errorMessage) {
+                <div class="error-message">
+                  <div class="error-header">Execution Error:</div>
+                  <div class="error-text">{{ node.errorMessage }}</div>
+                </div>
+              }
             </div>
 
             <!-- Node Configuration -->
             <div class="node-body">
               <!-- File Upload for file-based nodes -->
-              <div class="config-section" *ngIf="node.content.hasFileUpload">
-                <label class="file-upload-label">
-                  <input
-                    type="file"
-                    (change)="onFileSelected($event, node.id)"
-                    [accept]="getFileAcceptTypes(node.type)"
-                    class="file-input">
-                  <span class="file-upload-button">📁 Choose File</span>
-                </label>
-                <div class="file-info" *ngIf="node.config && node.config?.['fileName']">
-                  <small>{{ node.config['fileName'] }}</small>
+              @if (node.content.hasFileUpload) {
+                <div class="config-section">
+                  <label class="file-upload-label">
+                    <input
+                      type="file"
+                      (change)="onFileSelected($event, node.id)"
+                      [accept]="getFileAcceptTypes(node.type)"
+                      class="file-input">
+                    <span class="file-upload-button">📁 Choose File</span>
+                  </label>
+                  @if (node.config && node.config?.['fileName']) {
+                    <div class="file-info">
+                      <small>{{ node.config['fileName'] }}</small>
+                    </div>
+                  }
                 </div>
-              </div>
+              }
 
               <!-- Configuration Fields -->
-              <div class="config-section" *ngIf="node.content.inputFields && !node.content.displayOnly">
-                <div class="field-group" *ngFor="let field of node.content.inputFields">
-                  <label [for]="node.id + '_' + field.key" class="field-label">
-                    {{ field.label }}
-                    <span class="required-indicator" *ngIf="field.required">*</span>
-                  </label>
+              @if (node.content.inputFields && !node.content.displayOnly) {
+                <div class="config-section">
+                  @for (field of node.content.inputFields; track field.key) {
+                    <div class="field-group">
+                      <label [for]="node.id + '_' + field.key" class="field-label">
+                        {{ field.label }}
+                        @if (field.required) {
+                          <span class="required-indicator">*</span>
+                        }
+                      </label>
 
-                  <!-- Text Input -->
-                  <input
-                    *ngIf="field.type === 'text' || field.type === 'number'"
-                    [id]="node.id + '_' + field.key"
-                    [type]="field.type"
-                    [placeholder]="field.placeholder || ''"
-                    [ngModel]="node.config?.[field.key] || ''"
-                    (ngModelChange)="updateNodeConfig(node.id, field.key, $event)"
-                    class="field-input"
-                    [class.required-field]="field.required && !node.config?.[field.key]">
+                      <!-- Text Input -->
+                      @if (field.type === 'text' || field.type === 'number') {
+                        <input
+                          [id]="node.id + '_' + field.key"
+                          [type]="field.type"
+                          [placeholder]="field.placeholder || ''"
+                          [ngModel]="node.config?.[field.key] || ''"
+                          (ngModelChange)="updateNodeConfig(node.id, field.key, $event)"
+                          class="field-input"
+                          [class.required-field]="field.required && !node.config?.[field.key]">
+                      }
 
-                  <!-- Select Dropdown -->
-                  <select
-                    *ngIf="field.type === 'select'"
-                    [id]="node.id + '_' + field.key"
-                    [ngModel]="node.config?.[field.key] || ''"
-                    (ngModelChange)="updateNodeConfig(node.id, field.key, $event)"
-                    class="field-select"
-                    [class.required-field]="field.required && !node.config?.[field.key]">
-                    <option value="" disabled>Select {{ field.label }}</option>
-                    <option *ngFor="let option of field.options" [value]="option">{{ option }}</option>
-                  </select>
+                      <!-- Select Dropdown -->
+                      @if (field.type === 'select') {
+                        <select
+                          [id]="node.id + '_' + field.key"
+                          [ngModel]="node.config?.[field.key] || ''"
+                          (ngModelChange)="updateNodeConfig(node.id, field.key, $event)"
+                          class="field-select"
+                          [class.required-field]="field.required && !node.config?.[field.key]">
+                          <option value="" disabled>Select {{ field.label }}</option>
+                          @for (option of field.options; track option) {
+                            <option [value]="option">{{ option }}</option>
+                          }
+                        </select>
+                      }
 
-                  <!-- Checkbox -->
-                  <label
-                    *ngIf="field.type === 'checkbox'"
-                    class="checkbox-label">
-                    <input
-                      type="checkbox"
-                      [id]="node.id + '_' + field.key"
-                      [ngModel]="node.config?.[field.key] || false"
-                      (ngModelChange)="updateNodeConfig(node.id, field.key, $event)"
-                      class="field-checkbox">
-                    <span class="checkbox-text">{{ field.label }}</span>
-                  </label>
+                      <!-- Checkbox -->
+                      @if (field.type === 'checkbox') {
+                        <label class="checkbox-label">
+                          <input
+                            type="checkbox"
+                            [id]="node.id + '_' + field.key"
+                            [ngModel]="node.config?.[field.key] || false"
+                            (ngModelChange)="updateNodeConfig(node.id, field.key, $event)"
+                            class="field-checkbox">
+                          <span class="checkbox-text">{{ field.label }}</span>
+                        </label>
+                      }
+                    </div>
+                  }
                 </div>
-              </div>
+              }
 
-              <!-- Display-only nodes (results/status) -->
-              <div class="display-section" *ngIf="node.content.displayOnly">
-                <div class="status-display" *ngIf="node.content.status">
-                  <span class="status-text">Status: {{ node.content.status }}</span>
-                </div>
+              <!-- Display-only nodes with enhanced image support -->
+              @if (node.content.displayOnly) {
+                <div class="display-section" [class.has-image]="node.content.hasImageDisplay">
+                  @if (node.content.status) {
+                    <div class="status-display">
+                      <span class="status-text">Status: {{ node.content.status }}</span>
+                    </div>
+                  }
 
-                <!-- Results display area -->
-                <div class="results-display" *ngIf="node.config && node.config?.['results']">
-                  <div class="results-summary">
-                    <strong>Results:</strong>
-                    <pre>{{ formatResults(node.config['results']) }}</pre>
-                  </div>
-                </div>
+                  <!-- Process Discovery Image Display -->
+                  @if (node.content.hasImageDisplay) {
+                    <div class="image-display">
+                      @if (node.config?.['processImageUrl'] && !node.config?.['imageLoadError']) {
+                        <div class="image-header">
+                          <strong>Process Model:</strong>
+                          <div class="image-actions">
+                            <button
+                              class="image-action-btn"
+                              (click)="openImageInNewTab(node.config['processImageUrl'])"
+                              title="Open image in new tab">
+                              🔍 View Full
+                            </button>
+                            <button
+                              class="image-action-btn"
+                              (click)="downloadProcessImage(node.id)"
+                              title="Download image">
+                              💾 Download
+                            </button>
+                          </div>
+                        </div>
+                        <div class="image-container">
 
-                <!-- Execution logs -->
-                <div class="logs-display" *ngIf="node.config && node.config?.['logs']">
-                  <details class="logs-details">
-                    <summary>Execution Logs ({{ node.config['logs'].length }})</summary>
-                    <div class="logs-content">
-                      <div *ngFor="let log of node.config['logs']" class="log-entry">
-                        {{ log }}
+                          <img
+                            [src]="node.config['processImageUrl']"
+                            [alt]="'Process model for ' + node.content.title"
+                            class="process-image zoom-available"
+                            (load)="onImageLoaded(node.id)"
+                            (error)="onImageError(node.id, $event)"
+                            (click)="openImageInNewTab(node.config['processImageUrl'])"
+                            [title]="'Click to enlarge - Generated at: ' + (node.config['generatedAt'] || 'Unknown time')">
+                        </div>
+                      } @else if (node.config?.['imageLoading']) {
+                        <div class="image-container">
+                          <div class="image-overlay">
+                            <div class="loading-spinner"></div>
+                            <span>Generating process model...</span>
+                          </div>
+                        </div>
+                      } @else if (node.config?.['imageLoadError']) {
+                        <div class="image-error-display">
+                          <div class="error-icon">❌</div>
+                          <div class="error-message">{{ node.config['imageErrorMessage'] || 'Failed to load process model image' }}</div>
+                          <button
+                            class="retry-button"
+                            (click)="refreshProcessModel(node.id)"
+                            title="Retry loading image">
+                            🔄 Retry
+                          </button>
+                        </div>
+                      } @else {
+                        <div class="image-placeholder">
+                          <div class="placeholder-icon">📊</div>
+                          <div class="placeholder-text">Execute pipeline to generate process model</div>
+                        </div>
+                      }
+
+                      <!-- Discovery Statistics -->
+                      @if (node.config?.['discoveryStats'] && node.config?.['showStatistics']) {
+                        <div class="discovery-stats">
+                          <h6>Discovery Statistics:</h6>
+                          <div class="stats-grid">
+                            @for (stat of getDiscoveryStatsArray(node.config['discoveryStats']); track stat.label) {
+                              <div class="stat-item">
+                                <span class="stat-label">{{ stat.label }}:</span>
+                                <span class="stat-value">{{ stat.value }}</span>
+                              </div>
+                            }
+                          </div>
+                        </div>
+                      }
+                    </div>
+                  }
+
+                  <!-- Results display area (existing) -->
+                  @if (node.config && node.config?.['results']) {
+                    <div class="results-display">
+                      <div class="results-summary">
+                        <strong>Results:</strong>
+                        <pre>{{ formatResults(node.config['results']) }}</pre>
                       </div>
                     </div>
-                  </details>
+                  }
+
+                  <!-- Execution logs (existing) -->
+                  @if (node.config && node.config?.['logs']) {
+                    <div class="logs-display">
+                      <details class="logs-details">
+                        <summary>Execution Logs ({{ node.config['logs'].length }})</summary>
+                        <div class="logs-content">
+                          @for (log of node.config['logs']; track $index) {
+                            <div class="log-entry">{{ log }}</div>
+                          }
+                        </div>
+                      </details>
+                    </div>
+                  }
                 </div>
-              </div>
+              }
 
               <!-- Node Actions -->
-              <div class="node-actions" *ngIf="!node.content.displayOnly">
-                <button
-                  class="action-button test-button"
-                  (click)="testNode(node.id)"
-                  [disabled]="!canTestNode(node)"
-                  title="Test this node configuration">
-                  🧪 Test
-                </button>
-                <button
-                  class="action-button delete-button"
-                  (click)="deleteNode(node.id)"
-                  title="Delete this node">
-                  🗑️ Delete
-                </button>
-              </div>
+              @if (!node.content.displayOnly) {
+                <div class="node-actions">
+                  <button
+                    class="action-button test-button"
+                    (click)="testNode(node.id)"
+                    [disabled]="!canTestNode(node)"
+                    title="Test this node configuration">
+                    🧪 Test
+                  </button>
+                  <button
+                    class="action-button delete-button"
+                    (click)="deleteNode(node.id)"
+                    title="Delete this node">
+                    🗑️ Delete
+                  </button>
+                </div>
+              }
             </div>
 
             <!-- Output ports -->
-            <div class="ports-container outputs" *ngIf="node.outputs.length > 0">
-              <div *ngFor="let output of node.outputs" class="port-group">
-                <span class="port-label">{{ output.label }}</span>
-                <div
-                  fNodeOutput
-                  [fOutputMultiple]="true"
-                  [fOutputId]="output.id"
-                  [fCanBeConnectedInputs]="canConnectTo(output.id)"
-                  [class]="'port output-port ' + output.color"
-                  [title]="output.label + ' (' + getDataTypeFromColor(output.color) + ')'"
-                ></div>
+            @if (node.outputs.length > 0) {
+              <div class="ports-container outputs">
+                @for (output of node.outputs; track output.id) {
+                  <div class="port-group">
+                    <span class="port-label">{{ output.label }}</span>
+                    <div
+                      fNodeOutput
+                      [fOutputMultiple]="true"
+                      [fOutputId]="output.id"
+                      [fCanBeConnectedInputs]="canConnectTo(output.id)"
+                      [class]="'port output-port ' + output.color"
+                      [title]="output.label + ' (' + getDataTypeFromColor(output.color) + ')'"
+                    ></div>
+                  </div>
+                }
               </div>
-            </div>
+            }
           </div>
         }
       </f-canvas>
 
       <!-- Pipeline Status Panel -->
-      <div class="pipeline-status-panel" *ngIf="showStatusPanel">
-        <div class="status-header">
-          <h3>Pipeline Status</h3>
-          <button class="close-button" (click)="showStatusPanel = false">✕</button>
-        </div>
-        <div class="status-content">
-          <div class="status-item">
-            <span class="status-label">Nodes:</span>
-            <span class="status-value">{{ currentNodes.length }}</span>
+      @if (showStatusPanel) {
+        <div class="pipeline-status-panel">
+          <div class="status-header">
+            <h3>Pipeline Status</h3>
+            <button class="close-button" (click)="showStatusPanel = false">✕</button>
           </div>
-          <div class="status-item">
-            <span class="status-label">Connections:</span>
-            <span class="status-value">{{ connections.length }}</span>
+          <div class="status-content">
+            <div class="status-item">
+              <span class="status-label">Nodes:</span>
+              <span class="status-value">{{ currentNodes.length }}</span>
+            </div>
+            <div class="status-item">
+              <span class="status-label">Connections:</span>
+              <span class="status-value">{{ connections.length }}</span>
+            </div>
+            <div class="status-item">
+              <span class="status-label">Validation:</span>
+              <span [class]="'status-value ' + (pipelineValid ? 'valid' : 'invalid')">
+                {{ pipelineValid ? 'Valid' : 'Invalid' }}
+              </span>
+            </div>
+            <div class="status-item">
+              <span class="status-label">Error Nodes:</span>
+              <span [class]="'status-value ' + (getErrorNodeCount() > 0 ? 'invalid' : 'valid')">
+                {{ getErrorNodeCount() }}
+              </span>
+            </div>
           </div>
-          <div class="status-item">
-            <span class="status-label">Validation:</span>
-            <span [class]="'status-value ' + (pipelineValid ? 'valid' : 'invalid')">
-              {{ pipelineValid ? 'Valid' : 'Invalid' }}
-            </span>
-          </div>
+          <!-- Debug section -->
+          @if (showDebugPanel) {
+            <div class="debug-section">
+              <button class="action-button" (click)="clearAllErrors()">🔄 Clear Errors</button>
+              <button class="action-button" (click)="resetPositions()">🔄 Reset Positions</button>
+            </div>
+          }
         </div>
-        <!-- Debug button for position issues -->
-        <div class="debug-section" *ngIf="showDebugPanel">
-          <button class="action-button" (click)="debugPositions()">🐛 Debug Positions</button>
-          <button class="action-button" (click)="resetPositions()">🔄 Reset Positions</button>
-        </div>
-      </div>
+      }
     </f-flow>
   `,
   styleUrls: ['./node-editor.component.scss']
@@ -240,10 +376,10 @@ export class NodeEditorComponent implements OnDestroy, OnInit {
   public connections: Connection[] = [];
   public selectedNodeId: string | null = null;
   public showStatusPanel = false;
-  public showDebugPanel = false; // Enable for debugging
+  public showDebugPanel = false;
   public pipelineValid = false;
 
-  protected readonly fCanvas = viewChild(FCanvasComponent);
+  public readonly fCanvas = viewChild(FCanvasComponent);
   private readonly _fBrowser = inject(BrowserService);
 
   constructor(
@@ -260,9 +396,8 @@ export class NodeEditorComponent implements OnDestroy, OnInit {
       this.validatePipeline();
       this.changeDetectorRef.detectChanges();
 
-      // Log positions for debugging
       console.log('Nodes updated, current positions:',
-        nodes.map(n => ({ id: n.id, position: n.position }))
+        nodes.map(n => ({ id: n.id, position: n.position, hasError: n.hasError }))
       );
     });
   }
@@ -273,6 +408,13 @@ export class NodeEditorComponent implements OnDestroy, OnInit {
       this.validatePipeline();
       this.changeDetectorRef.detectChanges();
     });
+
+    let canvas = this.fCanvas();
+    if (canvas) {
+      // Canvas is ready
+    } else {
+      console.warn('Canvas component not available');
+    }
   }
 
   protected onLoaded(): void {
@@ -281,13 +423,11 @@ export class NodeEditorComponent implements OnDestroy, OnInit {
   }
 
   protected onCanvasChanged(event: FCanvasChangeEvent): void {
-    // Update CSS variable for scaling if needed
-    // this._fBrowser.document.documentElement.style.setProperty('--flow-scale', `${ event.scale }`);
+    // Canvas change handling
   }
 
   /**
    * Handle node moved events to update positions in service.
-   * FIXED: Properly track and save position changes.
    */
   public onNodeMoved(event: any): void {
     const nodeId = event.fNodeId;
@@ -296,7 +436,6 @@ export class NodeEditorComponent implements OnDestroy, OnInit {
     if (nodeId && newPosition) {
       console.log(`Node ${nodeId} moved to:`, newPosition);
 
-      // Update the position in the service
       this.nodeService.updateNodePosition(nodeId, {
         x: Number(newPosition.x),
         y: Number(newPosition.y)
@@ -318,7 +457,6 @@ export class NodeEditorComponent implements OnDestroy, OnInit {
       to: event.fInputId
     };
 
-    // Validate connection compatibility
     if (!this.isValidConnection(newConnection)) {
       console.warn('Invalid connection attempted:', newConnection);
       return;
@@ -344,7 +482,7 @@ export class NodeEditorComponent implements OnDestroy, OnInit {
     const node = this.nodeService.getNodeById(nodeId);
     if (node) {
       const newConfig = { ...(node.config || {}), [key]: value };
-      this.nodeService.updateNodeContent(nodeId, { config: newConfig });
+      this.nodeService.updateNodeConfig(nodeId, newConfig);
     }
   }
 
@@ -359,11 +497,8 @@ export class NodeEditorComponent implements OnDestroy, OnInit {
       this.updateNodeConfig(nodeId, 'fileName', file.name);
       this.updateNodeConfig(nodeId, 'fileSize', file.size);
       this.updateNodeConfig(nodeId, 'fileType', file.type);
-
-      // Store file for backend processing
       this.updateNodeConfig(nodeId, 'file', file);
 
-      // Upload file to backend
       const fileType = this.apiService.getFileTypeFromName(file.name);
       this.apiService.uploadDataset(file, fileType).subscribe({
         next: (result) => {
@@ -411,6 +546,14 @@ export class NodeEditorComponent implements OnDestroy, OnInit {
    * Get node status for display.
    */
   public getNodeStatus(node: FlowNode): NodeStatus | null {
+    // If node has an error, show error status
+    if (node.hasError) {
+      return {
+        type: 'error',
+        message: 'Execution failed'
+      };
+    }
+
     // Check if node is properly configured
     if (node.content.inputFields) {
       const missingRequired = node.content.inputFields
@@ -468,6 +611,26 @@ export class NodeEditorComponent implements OnDestroy, OnInit {
       };
     }
 
+    // Special handling for image display nodes
+    if (node.content.hasImageDisplay) {
+      if (node.config?.['processImageUrl']) {
+        return {
+          type: 'success',
+          message: 'Process model generated'
+        };
+      } else if (node.config?.['imageLoading']) {
+        return {
+          type: 'warning',
+          message: 'Generating model...'
+        };
+      } else if (node.config?.['imageLoadError']) {
+        return {
+          type: 'error',
+          message: 'Image generation failed'
+        };
+      }
+    }
+
     return {
       type: 'ready',
       message: 'Ready'
@@ -483,7 +646,6 @@ export class NodeEditorComponent implements OnDestroy, OnInit {
 
     console.log('Testing node:', node);
 
-    // Test node through API service
     this.apiService.testNode({
       id: node.id,
       type: node.type,
@@ -516,7 +678,6 @@ export class NodeEditorComponent implements OnDestroy, OnInit {
   public canTestNode(node: FlowNode): boolean {
     if (node.content.displayOnly) return false;
 
-    // Check if all required fields are filled
     if (node.content.inputFields) {
       const missingRequired = node.content.inputFields
         .filter((field: any) => field.required && !node.config?.[field.key]);
@@ -531,7 +692,6 @@ export class NodeEditorComponent implements OnDestroy, OnInit {
    */
   public deleteNode(nodeId: string): void {
     if (confirm('Are you sure you want to delete this node?')) {
-      // Remove connections involving this node
       const nodeConnections = this.connections.filter(conn =>
         this.extractNodeIdFromPortId(conn.from) === nodeId ||
         this.extractNodeIdFromPortId(conn.to) === nodeId
@@ -541,26 +701,11 @@ export class NodeEditorComponent implements OnDestroy, OnInit {
         this.mappingService.removeConnection(conn);
       });
 
-      // Remove the node
       this.nodeService.removeNode(nodeId);
 
       if (this.selectedNodeId === nodeId) {
         this.selectedNodeId = null;
       }
-    }
-  }
-
-  /**
-   * Clone a node.
-   */
-  public cloneNode(nodeId: string): void {
-    const node = this.nodeService.getNodeById(nodeId);
-    if (node) {
-      const newPosition = {
-        x: node.position.x + 50,
-        y: node.position.y + 50
-      };
-      this.nodeService.cloneNode(nodeId, newPosition);
     }
   }
 
@@ -601,6 +746,20 @@ export class NodeEditorComponent implements OnDestroy, OnInit {
   }
 
   /**
+   * Get count of nodes with errors.
+   */
+  public getErrorNodeCount(): number {
+    return this.currentNodes.filter(node => node.hasError).length;
+  }
+
+  /**
+   * Clear all errors from nodes.
+   */
+  public clearAllErrors(): void {
+    this.nodeService.clearAllErrors();
+  }
+
+  /**
    * Get pipeline statistics.
    */
   public getPipelineStats(): any {
@@ -634,7 +793,6 @@ export class NodeEditorComponent implements OnDestroy, OnInit {
           this.pipelineValid = result.isValid;
         },
         error: () => {
-          // Fallback to local validation
           const validation = this.pipelineService.validatePipeline();
           this.pipelineValid = validation.isValid;
         }
@@ -662,7 +820,6 @@ export class NodeEditorComponent implements OnDestroy, OnInit {
 
     if (!fromPort || !toPort) return false;
 
-    // Check type compatibility
     return fromPort.color === toPort.color;
   }
 
@@ -699,15 +856,108 @@ export class NodeEditorComponent implements OnDestroy, OnInit {
     this.fCanvas()?.resetZoom();
   }
 
+  public addProcessImage(img_url: string): void {
+    console.log('Adding process image:', img_url);
+  }
+
   /**
-   * Debug function to log current positions.
+   * Find the element inside the canvas that actually carries the CSS transform.
+   * We prefer the deepest element with a non-'none' transform.
    */
-  public debugPositions(): void {
-    console.log('=== DEBUG: Current Node Positions ===');
-    this.currentNodes.forEach(node => {
-      console.log(`${node.id}: (${node.position.x}, ${node.position.y})`);
-    });
-    console.log('=====================================');
+  private getTransformedCanvasLayer(): HTMLElement | null {
+    const host = this.fCanvas()?.hostElement as HTMLElement | null;
+    if (!host) return null;
+
+    // Look for the deepest transformed descendant
+    const all = Array.from(host.querySelectorAll<HTMLElement>('*'));
+    // Include the host as a fallback
+    all.push(host);
+
+    let transformed: HTMLElement | null = null;
+    for (const el of all) {
+      const t = window.getComputedStyle(el).transform;
+      if (t && t !== 'none') transformed = el;
+    }
+    return transformed || host;
+  }
+
+  /**
+   * Parse a CSS matrix(...) string into {scaleX, scaleY, translateX, translateY}.
+   */
+  private parseCssMatrix(transform: string): { scaleX: number; scaleY: number; translateX: number; translateY: number } {
+    // matrix(a, b, c, d, e, f)  =>  scaleX=a, scaleY=d, translateX=e, translateY=f
+    const m = transform.match(/matrix\(([-0-9., e]+)\)/);
+    if (!m) return { scaleX: 1, scaleY: 1, translateX: 0, translateY: 0 };
+    const [a, , , d, e, f] = m[1].split(',').map(v => Number(v.trim()));
+    return {
+      scaleX: Number.isFinite(a) ? a : 1,
+      scaleY: Number.isFinite(d) ? d : 1,
+      translateX: Number.isFinite(e) ? e : 0,
+      translateY: Number.isFinite(f) ? f : 0,
+    };
+  }
+
+  /**
+   * Transform screen (client) coordinates to canvas world coordinates.
+   * Works regardless of current zoom/pan.
+   */
+  public transformScreenToCanvas(screenX: number, screenY: number): { x: number; y: number } | null {
+    try {
+      const layer = this.getTransformedCanvasLayer();
+      if (!layer) return null;
+
+      // Use the rect of the transformed layer, not the <f-canvas> host.
+      const rect = layer.getBoundingClientRect();
+      const { scaleX, scaleY, translateX, translateY } = this.parseCssMatrix(getComputedStyle(layer).transform);
+
+      // Coordinates relative to the transformed layer
+      const localX = screenX - rect.left;
+      const localY = screenY - rect.top;
+
+      // Invert the affine transform
+      const worldX = (localX - translateX) / (scaleX || 1);
+      const worldY = (localY - translateY) / (scaleY || 1);
+
+      return { x: worldX, y: worldY };
+    } catch (err) {
+      console.error('transformScreenToCanvas failed:', err);
+      return null;
+    }
+  }
+
+  /**
+   * Get current canvas transformation info for debugging.
+   */
+  public getCanvasTransformation(): any {
+    try {
+      const canvas = this.fCanvas();
+      if (!canvas) return null;
+
+      const canvasElement = this.fCanvas()?.hostElement;
+      if (!canvasElement) return null;
+
+      const style = window.getComputedStyle(canvasElement);
+      const rect = canvasElement.getBoundingClientRect();
+
+      return {
+        transform: style.transform,
+        rect: {
+          left: rect.left,
+          top: rect.top,
+          width: rect.width,
+          height: rect.height
+        },
+        elementInfo: {
+          offsetLeft: canvasElement.offsetLeft,
+          offsetTop: canvasElement.offsetTop,
+          scrollLeft: canvasElement.scrollLeft,
+          scrollTop: canvasElement.scrollTop
+        }
+      };
+    } catch (error) {
+      console.error('Error getting canvas transformation:', error);
+      return null;
+    }
   }
 
   /**
@@ -717,5 +967,122 @@ export class NodeEditorComponent implements OnDestroy, OnInit {
     if (confirm('Reset all node positions to a grid layout?')) {
       this.mappingService.resetNodePositions();
     }
+  }
+
+  // ============ IMAGE DISPLAY METHODS ============
+
+  /**
+   * Open image in new tab for full-size viewing.
+   */
+  public openImageInNewTab(imageUrl: string): void {
+    if (imageUrl) {
+      window.open(imageUrl, '_blank', 'noopener,noreferrer');
+    }
+  }
+
+  /**
+   * Handle successful image loading.
+   */
+  public onImageLoaded(nodeId: string): void {
+    console.log(`Process image loaded successfully for node ${nodeId}`);
+    this.updateNodeConfig(nodeId, 'imageLoading', false);
+    this.updateNodeConfig(nodeId, 'imageLoadError', false);
+  }
+
+  /**
+   * Handle image loading errors.
+   */
+  public onImageError(nodeId: string, event: Event): void {
+    console.error(`Failed to load process image for node ${nodeId}:`, event);
+    this.updateNodeConfig(nodeId, 'imageLoading', false);
+    this.updateNodeConfig(nodeId, 'imageLoadError', true);
+    this.updateNodeConfig(nodeId, 'imageErrorMessage', 'Failed to load process model image');
+  }
+
+  public forceUIUpdate(): void {
+    this.changeDetectorRef.detectChanges();
+  }
+
+  /**
+   * Convert discovery statistics object to array for template iteration.
+   */
+  public getDiscoveryStatsArray(stats: any): Array<{label: string, value: string}> {
+    if (!stats || typeof stats !== 'object') {
+      return [];
+    }
+
+    const statsArray = [];
+
+    // Common statistics that might be returned
+    const statLabels: Record<string, string> = {
+      'nodes': 'Nodes',
+      'edges': 'Edges',
+      'activities': 'Activities',
+      'cases': 'Cases',
+      'events': 'Events',
+      'objects': 'Objects',
+      'relationships': 'Relationships',
+      'traces': 'Traces',
+      'executionTime': 'Execution Time',
+      'algorithm': 'Algorithm Used',
+      'noiseFiltered': 'Noise Filtered'
+    };
+
+    for (const [key, value] of Object.entries(stats)) {
+      const label = statLabels[key] || key.charAt(0).toUpperCase() + key.slice(1);
+      statsArray.push({
+        label,
+        value: typeof value === 'number' ? value.toLocaleString() : String(value)
+      });
+    }
+
+    return statsArray;
+  }
+
+  /**
+   * Download the process model image.
+   */
+  public downloadProcessImage(nodeId: string): void {
+    const node = this.getNodeById(nodeId);
+    const imageUrl = node?.config?.['processImageUrl'];
+
+    if (!imageUrl) {
+      console.warn('No image URL available for download');
+      return;
+    }
+
+    // Create a temporary link to download the image
+    const link = document.createElement('a');
+    link.href = imageUrl;
+    link.download = `process_model_${nodeId}_${Date.now()}.png`;
+    link.target = '_blank';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
+  /**
+   * Refresh the process model by re-executing the discovery node.
+   */
+  public refreshProcessModel(nodeId: string): void {
+    const node = this.getNodeById(nodeId);
+    if (!node) return;
+
+    // Set loading state
+    this.updateNodeConfig(nodeId, 'imageLoading', true);
+    this.updateNodeConfig(nodeId, 'processImageUrl', null);
+
+    // Clear previous error states
+    this.updateNodeConfig(nodeId, 'imageLoadError', false);
+    this.updateNodeConfig(nodeId, 'imageErrorMessage', null);
+
+    console.log('Process model refresh requested for node:', nodeId);
+  }
+
+  /**
+   * Helper method to get node by ID.
+   */
+  private getNodeById(nodeId: string): FlowNode | undefined {
+    return this.currentNodes.find(node => node.id === nodeId);
   }
 }
