@@ -371,7 +371,7 @@ export class AppComponent implements OnInit {
       ],
     },
     {
-      title: 'CORE Model Creation',
+      title: 'CORE Model Nodes',
       nodes: [
         {
           type: 'iot-event',
