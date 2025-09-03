@@ -396,6 +396,28 @@ export class AppComponent implements OnInit {
       ],
     },
     {
+      title: 'Utilities',
+      collapsed: true,
+      nodes: [
+        {
+          type: 'unique-id-generator',
+          label: 'Unique ID Generator',
+          description: 'Generate unique IDs for events and objects',
+          color: 'nord-blue',
+          hasInputs: true,
+          hasOutputs: true,
+        },
+        {
+          type: 'object-class-selector',
+          label: 'Object Class Selector',
+          description: 'Select object classes from predefined options',
+          color: 'nord-yellow',
+          hasInputs: false,
+          hasOutputs: true,
+        }
+      ]
+    },
+    {
       title: 'CORE Model',
       collapsed: true,
       nodes: [
