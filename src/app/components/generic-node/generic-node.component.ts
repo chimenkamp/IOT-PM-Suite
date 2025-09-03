@@ -1,4 +1,3 @@
-// src/app/components/generic-node/generic-node.component.ts - Updated with error highlighting
 
 import { Component, Input, OnInit, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -17,6 +16,7 @@ export interface Position {
 
 export interface NodeContent {
   title: string;
+  hasFileDownload?: boolean;
   description: string;
   status?: string;
   hasImageDisplay?: boolean;

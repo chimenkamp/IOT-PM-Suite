@@ -417,6 +417,19 @@ export class ApiService {
     return 'Unknown';
   }
 
+    /**
+   * Preview table file contents (first few rows).
+   */
+  previewTableFile(fileUrl: string): Observable<any> {
+    return this.http.post(`${this.baseUrl}/files/preview`, {
+      fileUrl: fileUrl,
+      maxRows: 10,
+      includeHeaders: true
+    }).pipe(
+      catchError(this.handleError)
+    );
+  }
+
   /**
    * Show connection status notification.
    */

@@ -257,6 +257,8 @@ interface NodeStatus {
                           </div>
                         </div>
                       }
+
+
                     </div>
                   }
 
@@ -281,6 +283,140 @@ interface NodeStatus {
                           }
                         </div>
                       </details>
+                    </div>
+                  }
+                </div>
+              }
+
+              <!-- File Download Display for Table Output -->
+              @if (node.content.hasFileDownload) {
+                <div class="file-download">
+                  @if (node.config?.['tableUrl'] && !node.config?.['fileLoadError']) {
+                    <div class="file-header">
+                      <strong>Generated File:</strong>
+                      <div class="file-actions">
+                        <button
+                          class="file-action-btn"
+                          (click)="downloadTableFile(node.id)"
+                          title="Download table file">
+                          💾 Download
+                        </button>
+                        <button
+                          class="file-action-btn"
+                          (click)="previewTableFile(node.id)"
+                          title="Preview file contents"
+                          [disabled]="!canPreviewFile(node)">
+                          👁️ Preview
+                        </button>
+                      </div>
+                    </div>
+                    <div class="file-info-container">
+                      <div class="file-details">
+                        <div class="file-item">
+                          <span class="file-label">Format:</span>
+                          <span class="file-value">{{ getFileFormat(node.config['tableUrl']) }}</span>
+                        </div>
+                        <div class="file-item">
+                          <span class="file-label">Generated:</span>
+                          <span class="file-value">{{ formatDate(node.config['generatedAt']) }}</span>
+                        </div>
+                        @if (node.config['fileSize']) {
+                          <div class="file-item">
+                            <span class="file-label">Size:</span>
+                            <span class="file-value">{{ formatFileSize(node.config['fileSize']) }}</span>
+                          </div>
+                        }
+                        @if (node.config['recordCount']) {
+                          <div class="file-item">
+                            <span class="file-label">Records:</span>
+                            <span class="file-value">{{ node.config['recordCount'].toLocaleString() }}</span>
+                          </div>
+                        }
+                      </div>
+                    </div>
+                  } @else if (node.config?.['fileLoading']) {
+                    <div class="file-loading">
+                      <div class="loading-spinner"></div>
+                      <span>Generating table output...</span>
+                    </div>
+                  } @else if (node.config?.['fileLoadError']) {
+                    <div class="file-error-display">
+                      <div class="error-icon">⚠️</div>
+                      <div class="error-message">{{ node.config['fileErrorMessage'] || 'Failed to generate table output' }}</div>
+                      <button
+                        class="retry-button"
+                        (click)="refreshTableFile(node.id)"
+                        title="Retry generating file">
+                        🔄 Retry
+                      </button>
+                    </div>
+                  } @else {
+                    <div class="file-placeholder">
+                      <div class="placeholder-icon">📄</div>
+                      <div class="placeholder-text">Execute pipeline to generate table output</div>
+                    </div>
+                  }
+
+                  <!-- Table Preview Display -->
+                  @if (node.config?.['showPreview'] && node.config?.['tablePreview']) {
+                    <div class="table-preview">
+                      <div class="preview-header">
+                        <strong>Preview:</strong>
+                        <button
+                          class="preview-toggle"
+                          (click)="toggleTablePreview(node.id)"
+                          title="Hide preview">
+                          ❌ Hide
+                        </button>
+                      </div>
+                      <div class="preview-container">
+                        <div class="table-container">
+                          @if (node.config['tablePreview'].headers) {
+                            <table class="data-table">
+                              <thead>
+                                <tr>
+                                  @for (header of node.config['tablePreview'].headers; track header) {
+                                    <th>{{ header }}</th>
+                                  }
+                                </tr>
+                              </thead>
+                              <tbody>
+                                @for (row of node.config['tablePreview'].rows.slice(0, 10); track $index) {
+                                  <tr>
+                                    @for (cell of row; track $index) {
+                                      <td>{{ formatCellValue(cell) }}</td>
+                                    }
+                                  </tr>
+                                }
+                              </tbody>
+                            </table>
+                            @if (node.config['tablePreview'].rows.length > 10) {
+                              <div class="preview-footer">
+                                Showing first 10 of {{ node.config['tablePreview'].rows.length }} rows
+                              </div>
+                            }
+                          } @else {
+                            <div class="preview-text">
+                              <pre>{{ node.config['tablePreview'] }}</pre>
+                            </div>
+                          }
+                        </div>
+                      </div>
+                    </div>
+                  }
+
+                  <!-- Table Statistics -->
+                  @if (node.config?.['tableStats'] && node.config?.['showStatistics']) {
+                    <div class="table-stats">
+                      <h6>Table Statistics:</h6>
+                      <div class="stats-grid">
+                        @for (stat of getTableStatsArray(node.config['tableStats']); track stat.label) {
+                          <div class="stat-item">
+                            <span class="stat-label">{{ stat.label }}:</span>
+                            <span class="stat-value">{{ stat.value }}</span>
+                          </div>
+                        }
+                      </div>
                     </div>
                   }
                 </div>
@@ -1095,4 +1231,221 @@ export class NodeEditorComponent implements OnDestroy, OnInit {
   private getNodeById(nodeId: string): FlowNode | undefined {
     return this.currentNodes.find(node => node.id === nodeId);
   }
+
+/**
+ * Download the table file.
+ */
+public downloadTableFile(nodeId: string): void {
+  const node = this.getNodeById(nodeId);
+  const tableUrl = node?.config?.['tableUrl'];
+
+  if (!tableUrl) {
+    console.warn('No table URL available for download');
+    return;
+  }
+
+  // Create a temporary link to download the file
+  const link = document.createElement('a');
+  link.href = tableUrl;
+
+  // Try to determine filename from URL or use default
+  const filename = this.getFilenameFromUrl(tableUrl) || `table_output_${nodeId}_${Date.now()}.csv`;
+  link.download = filename;
+  link.target = '_blank';
+
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  console.log(`Downloaded table file for node ${nodeId}:`, filename);
+}
+
+/**
+ * Preview the table file contents.
+ */
+public previewTableFile(nodeId: string): void {
+  const node = this.getNodeById(nodeId);
+  const tableUrl = node?.config?.['tableUrl'];
+
+  if (!tableUrl || !this.canPreviewFile(node)) {
+    console.warn('Cannot preview table file');
+    return;
+  }
+
+  // Set loading state
+  this.updateNodeConfig(nodeId, 'previewLoading', true);
+
+  // Fetch preview data from backend
+  this.apiService.previewTableFile(tableUrl).subscribe({
+    next: (previewData) => {
+      this.updateNodeConfig(nodeId, 'tablePreview', previewData);
+      this.updateNodeConfig(nodeId, 'showPreview', true);
+      this.updateNodeConfig(nodeId, 'previewLoading', false);
+      console.log('Table preview loaded for node:', nodeId);
+    },
+    error: (error) => {
+      console.error('Failed to load table preview:', error);
+      this.updateNodeConfig(nodeId, 'previewLoading', false);
+      this.updateNodeConfig(nodeId, 'previewError', 'Failed to load preview');
+    }
+  });
+}
+
+/**
+ * Check if file can be previewed based on format.
+ */
+public canPreviewFile(node: FlowNode | undefined): boolean {
+  if (!node?.config?.['tableUrl']) return false;
+
+  const format = this.getFileFormat(node.config['tableUrl']);
+  // Allow preview for text-based formats
+  return ['CSV', 'JSON', 'TXT'].includes(format.toUpperCase());
+}
+
+/**
+ * Toggle table preview visibility.
+ */
+public toggleTablePreview(nodeId: string): void {
+  const node = this.getNodeById(nodeId);
+  const currentState = node?.config?.['showPreview'] || false;
+  this.updateNodeConfig(nodeId, 'showPreview', !currentState);
+}
+
+/**
+ * Refresh table file generation.
+ */
+public refreshTableFile(nodeId: string): void {
+  const node = this.getNodeById(nodeId);
+  if (!node) return;
+
+  // Set loading state
+  this.updateNodeConfig(nodeId, 'fileLoading', true);
+  this.updateNodeConfig(nodeId, 'tableUrl', null);
+  this.updateNodeConfig(nodeId, 'fileLoadError', false);
+  this.updateNodeConfig(nodeId, 'fileErrorMessage', null);
+
+  console.log('Table file refresh requested for node:', nodeId);
+}
+
+/**
+ * Get file format from URL or filename.
+ */
+public getFileFormat(url: string): string {
+  if (!url) return 'Unknown';
+
+  const extension = url.toLowerCase().split('.').pop();
+  const formatMap: Record<string, string> = {
+    'csv': 'CSV',
+    'json': 'JSON',
+    'xlsx': 'Excel',
+    'xls': 'Excel',
+    'txt': 'Text',
+    'tsv': 'TSV'
+  };
+
+  return formatMap[extension || ''] || 'Unknown';
+}
+
+/**
+ * Extract filename from URL.
+ */
+private getFilenameFromUrl(url: string): string | null {
+  try {
+    const urlObj = new URL(url);
+    const pathname = urlObj.pathname;
+    const filename = pathname.substring(pathname.lastIndexOf('/') + 1);
+    return filename || null;
+  } catch {
+    // If URL parsing fails, try simple string extraction
+    const parts = url.split('/');
+    return parts[parts.length - 1] || null;
+  }
+}
+
+/**
+ * Format date for display.
+ */
+public formatDate(dateString: string | undefined): string {
+  if (!dateString) return 'Unknown';
+
+  try {
+    const date = new Date(dateString);
+    return date.toLocaleString();
+  } catch {
+    return 'Invalid date';
+  }
+}
+
+/**
+ * Format file size for display.
+ */
+public formatFileSize(bytes: number | undefined): string {
+  if (!bytes || bytes === 0) return 'Unknown size';
+
+  const units = ['B', 'KB', 'MB', 'GB'];
+  let size = bytes;
+  let unitIndex = 0;
+
+  while (size >= 1024 && unitIndex < units.length - 1) {
+    size /= 1024;
+    unitIndex++;
+  }
+
+  return `${size.toFixed(1)} ${units[unitIndex]}`;
+}
+
+/**
+ * Format cell value for table display.
+ */
+public formatCellValue(value: any): string {
+  if (value === null || value === undefined) return '';
+  if (typeof value === 'object') return JSON.stringify(value);
+  if (typeof value === 'string' && value.length > 50) {
+    return value.substring(0, 47) + '...';
+  }
+  return String(value);
+}
+
+/**
+ * Convert table statistics object to array for template iteration.
+ */
+public getTableStatsArray(stats: any): Array<{label: string, value: string}> {
+  if (!stats || typeof stats !== 'object') {
+    return [];
+  }
+
+  const statsArray = [];
+  const statLabels: Record<string, string> = {
+    'rows': 'Rows',
+    'columns': 'Columns',
+    'size': 'File Size',
+    'format': 'Format',
+    'encoding': 'Encoding',
+    'generatedAt': 'Generated',
+    'processingTime': 'Processing Time',
+    'nullValues': 'Null Values',
+    'uniqueValues': 'Unique Values'
+  };
+
+  for (const [key, value] of Object.entries(stats)) {
+    const label = statLabels[key] || key.charAt(0).toUpperCase() + key.slice(1);
+    let formattedValue = String(value);
+
+    // Special formatting for certain types
+    if (key === 'size' && typeof value === 'number') {
+      formattedValue = this.formatFileSize(value);
+    } else if (key === 'generatedAt' && typeof value === 'string') {
+      formattedValue = this.formatDate(value);
+    } else if (typeof value === 'number') {
+      formattedValue = value.toLocaleString();
+    }
+
+    statsArray.push({
+      label,
+      value: formattedValue
+    });
+  }
+
+  return statsArray;
+}
 }

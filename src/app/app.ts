@@ -304,7 +304,7 @@ export class AppComponent implements OnInit {
       ],
     },
     {
-      title: 'CAIRO XML Parsing',
+      title: 'Parsing',
       collapsed: true,
       nodes: [
         {
@@ -755,7 +755,7 @@ export class AppComponent implements OnInit {
           this.nodeService.highlightErrorNodes(result.logs || []);
         }
 
-        this.showLogDialog(result);
+        // this.showLogDialog(result);
         if (result.results) {
           this.showResults(result.results);
         }
@@ -806,32 +806,88 @@ export class AppComponent implements OnInit {
   /**
    * Show execution results.
    */
-  private showResults(results: any): void {
-    console.log('Execution results:', results);
+private showResults(results: any): void {
+  console.log('Execution results:', results);
 
-    if (results.process_discovery) {
-      const ocpmNodes = this.nodeService.getAllNodes().filter(node => node.type === 'ocpm-discovery');
+  // Handle Process Discovery results
+  if (results.process_discovery) {
+    const ocpmNodes = this.nodeService.getAllNodes().filter(node => node.type === 'ocpm-discovery');
 
-      ocpmNodes.forEach(node => {
-        this.nodeService.updateNodeConfig(node.id, {
-          processImageUrl: results.process_discovery,
-          generatedAt: new Date().toISOString(),
-          imageLoading: false,
-          imageLoadError: false,
-        });
+    ocpmNodes.forEach(node => {
+      this.nodeService.updateNodeConfig(node.id, {
+        processImageUrl: results.process_discovery,
+        generatedAt: new Date().toISOString(),
+        imageLoading: false,
+        imageLoadError: false,
       });
+    });
 
-      this.snackBar.open('Process model generated and displayed in OCPM Discovery node', 'View Node', {
-        duration: 5000,
-      });
-    }
-
-    if (results.core_model) {
-      this.snackBar.open('CORE Model successfully created', 'View Details', {
-        duration: 5000,
-      });
-    }
+    this.snackBar.open('Process model generated and displayed in OCPM Discovery node', 'View Node', {
+      duration: 5000,
+    });
   }
+
+  // Handle Table Output results
+  if (results.table) {
+    const tableNodes = this.nodeService.getAllNodes().filter(node => node.type === 'table-output');
+
+    tableNodes.forEach(node => {
+      // Extract additional metadata if available
+      const fileExtension = this.getFileExtension(results.table);
+      const estimatedFormat = this.getFormatFromExtension(fileExtension);
+
+      this.nodeService.updateNodeConfig(node.id, {
+        tableUrl: results.table,
+        generatedAt: new Date().toISOString(),
+        fileLoading: false,
+        fileLoadError: false,
+        format: estimatedFormat,
+        // Add any additional metadata from the results
+        ...(results.tableMetadata && {
+          fileSize: results.tableMetadata.size,
+          recordCount: results.tableMetadata.records,
+          columnCount: results.tableMetadata.columns,
+          tableStats: results.tableMetadata.stats
+        })
+      });
+    });
+
+    this.snackBar.open('Table output generated and ready for download', 'View Node', {
+      duration: 5000,
+    });
+  }
+
+  // Handle CORE Model results
+  if (results.core_model) {
+    this.snackBar.open('CORE Model successfully created', 'View Details', {
+      duration: 5000,
+    });
+  }
+}
+
+/**
+ * Helper method to extract file extension from URL/path.
+ */
+private getFileExtension(filePath: string): string {
+  if (!filePath) return '';
+  const parts = filePath.split('.');
+  return parts.length > 1 ? parts[parts.length - 1].toLowerCase() : '';
+}
+
+/**
+ * Helper method to determine format from file extension.
+ */
+private getFormatFromExtension(extension: string): string {
+  const formatMap: Record<string, string> = {
+    'csv': 'CSV',
+    'json': 'JSON',
+    'xlsx': 'Excel',
+    'xls': 'Excel',
+    'txt': 'Text',
+    'tsv': 'TSV'
+  };
+  return formatMap[extension] || 'Unknown';
+}
 
   /**
    * Show log dialog.

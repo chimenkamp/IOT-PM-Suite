@@ -19,6 +19,7 @@ export interface NodeContent {
   status?: string;
   hasFileUpload?: boolean;
   hasMultipleInputs?: boolean;
+  hasFileDownload?: boolean;
   inputFields?: Array<{
     key: string;
     label: string;
@@ -859,14 +860,28 @@ export const nodeDefinitions: Record<string, NodeTemplate> = {
     outputs: [],
     content: {
       title: 'Table Output',
-      description: 'Display data in tabular format',
+      description: 'Display and download data in tabular format',
       displayOnly: true,
+      hasFileDownload: true, // New property for file download capability
       inputFields: [
         {
           key: 'maxRows',
           label: 'Max Rows to Display',
           type: 'number',
           placeholder: '100',
+          required: false
+        },
+        {
+          key: 'format',
+          label: 'Export Format',
+          type: 'select',
+          options: ['CSV', 'JSON', 'Excel'],
+          required: false
+        },
+        {
+          key: 'includeHeaders',
+          label: 'Include Headers',
+          type: 'checkbox',
           required: false
         }
       ]

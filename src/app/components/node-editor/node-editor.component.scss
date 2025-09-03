@@ -840,3 +840,303 @@ f-flow {
     }
   }
 }
+
+// Add these styles to node-editor.component.scss
+
+// ============ FILE DOWNLOAD STYLES ============
+.file-download {
+  margin-bottom: 0.75rem;
+  border: 1px solid #434c5e;
+  border-radius: 6px;
+  overflow: hidden;
+  background-color: rgba(46, 52, 64, 0.3);
+}
+
+.file-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  background-color: rgba(76, 86, 106, 0.4);
+  border-bottom: 1px solid #434c5e;
+
+  strong {
+    color: #88c0d0;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+}
+
+.file-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.file-action-btn {
+  background: none;
+  border: 1px solid #5e81ac;
+  color: #81a1c1;
+  padding: 0.2rem 0.4rem;
+  border-radius: 3px;
+  font-size: 0.65rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover:not(:disabled) {
+    background-color: rgba(94, 129, 172, 0.2);
+    color: #9dd0e0;
+    border-color: #81a1c1;
+  }
+
+  &:active {
+    transform: translateY(1px);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.file-info-container {
+  padding: 0.5rem 0.75rem;
+}
+
+.file-details {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem;
+}
+
+.file-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.25rem 0.5rem;
+  background-color: rgba(76, 86, 106, 0.3);
+  border-radius: 3px;
+}
+
+.file-label {
+  color: #d8dee9;
+  font-size: 0.7rem;
+  font-weight: 500;
+}
+
+.file-value {
+  color: #88c0d0;
+  font-size: 0.7rem;
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+}
+
+// ============ FILE LOADING STATE ============
+.file-loading {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  color: #81a1c1;
+  font-size: 0.75rem;
+  gap: 0.5rem;
+  min-height: 80px;
+}
+
+// ============ FILE PLACEHOLDER ============
+.file-placeholder {
+  padding: 1rem;
+  text-align: center;
+  color: #6b7280;
+  background-color: rgba(107, 114, 128, 0.05);
+  border: 1px dashed rgba(107, 114, 128, 0.3);
+  border-radius: 4px;
+  margin: 0.5rem;
+
+  .placeholder-icon {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+    opacity: 0.7;
+  }
+
+  .placeholder-text {
+    font-size: 0.75rem;
+    line-height: 1.4;
+    color: #81a1c1;
+  }
+}
+
+// ============ TABLE PREVIEW STYLES ============
+.table-preview {
+  margin-top: 0.5rem;
+  border-top: 1px solid rgba(136, 192, 208, 0.2);
+  background-color: rgba(136, 192, 208, 0.05);
+}
+
+.preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid rgba(136, 192, 208, 0.2);
+
+  strong {
+    color: #88c0d0;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+}
+
+.preview-toggle {
+  background: none;
+  border: 1px solid #bf616a;
+  color: #bf616a;
+  padding: 0.2rem 0.4rem;
+  border-radius: 3px;
+  font-size: 0.65rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: rgba(191, 97, 106, 0.2);
+    color: #d08a8a;
+  }
+}
+
+.preview-container {
+  padding: 0.5rem;
+  max-height: 300px;
+  overflow: auto;
+}
+
+.table-container {
+  border: 1px solid #434c5e;
+  border-radius: 4px;
+  overflow: hidden;
+  background-color: rgba(46, 52, 64, 0.5);
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.7rem;
+  font-family: 'Courier New', monospace;
+
+  th {
+    background-color: #434c5e;
+    color: #eceff4;
+    padding: 0.4rem 0.6rem;
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 1px solid #4c566a;
+    position: sticky;
+    top: 0;
+  }
+
+  td {
+    padding: 0.35rem 0.6rem;
+    color: #d8dee9;
+    border-bottom: 1px solid rgba(76, 86, 106, 0.3);
+    vertical-align: top;
+    word-break: break-word;
+  }
+
+  tr:nth-child(even) td {
+    background-color: rgba(67, 76, 94, 0.2);
+  }
+
+  tr:hover td {
+    background-color: rgba(94, 129, 172, 0.1);
+  }
+}
+
+.preview-text {
+  padding: 0.5rem;
+
+  pre {
+    margin: 0;
+    color: #d8dee9;
+    font-size: 0.65rem;
+    white-space: pre-wrap;
+    word-break: break-all;
+    max-height: 200px;
+    overflow: auto;
+  }
+}
+
+.preview-footer {
+  padding: 0.4rem 0.6rem;
+  background-color: rgba(76, 86, 106, 0.3);
+  color: #81a1c1;
+  font-size: 0.65rem;
+  text-align: center;
+  border-top: 1px solid #434c5e;
+}
+
+// ============ TABLE STATISTICS ============
+.table-stats {
+  padding: 0.5rem 0.75rem;
+  background-color: rgba(136, 192, 208, 0.05);
+  border-top: 1px solid rgba(136, 192, 208, 0.2);
+
+  h6 {
+    margin: 0 0 0.5rem 0;
+    color: #88c0d0;
+    font-size: 0.7rem;
+    font-weight: 600;
+  }
+}
+
+// ============ RESPONSIVE TABLE DESIGN ============
+@media (max-width: 768px) {
+  .file-details {
+    grid-template-columns: 1fr;
+    gap: 0.2rem;
+  }
+
+  .file-actions {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .data-table {
+    font-size: 0.65rem;
+
+    th, td {
+      padding: 0.25rem 0.4rem;
+    }
+  }
+
+  .table-container {
+    overflow-x: auto;
+  }
+
+  .preview-header {
+    flex-direction: column;
+    gap: 0.3rem;
+    text-align: center;
+  }
+}
+
+// ============ SCROLLBAR STYLING FOR PREVIEW ============
+.preview-container::-webkit-scrollbar,
+.table-container::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.preview-container::-webkit-scrollbar-track,
+.table-container::-webkit-scrollbar-track {
+  background: #3b4252;
+}
+
+.preview-container::-webkit-scrollbar-thumb,
+.table-container::-webkit-scrollbar-thumb {
+  background: #4c566a;
+  border-radius: 3px;
+}
+
+.preview-container::-webkit-scrollbar-thumb:hover,
+.table-container::-webkit-scrollbar-thumb:hover {
+  background: #5e81ac;
+}

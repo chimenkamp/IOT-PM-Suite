@@ -11,6 +11,7 @@ export interface NodeHandle {
 }
 
 export interface NodeContent {
+  hasFileDownload?: boolean;
   title: string;
   description: string;
   hasInput?: boolean;
