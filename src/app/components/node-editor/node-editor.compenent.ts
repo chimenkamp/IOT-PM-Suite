@@ -301,13 +301,13 @@ interface NodeStatus {
                           title="Download table file">
                           💾 Download
                         </button>
-                        <button
+                        <!-- <button
                           class="file-action-btn"
                           (click)="previewTableFile(node.id)"
                           title="Preview file contents"
                           [disabled]="!canPreviewFile(node)">
                           👁️ Preview
-                        </button>
+                        </button> -->
                       </div>
                     </div>
                     <div class="file-info-container">

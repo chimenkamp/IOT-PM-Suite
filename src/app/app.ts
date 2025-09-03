@@ -445,14 +445,14 @@ export class AppComponent implements OnInit {
           hasInputs: true,
           hasOutputs: false,
         },
-        {
-          type: 'export-ocel',
-          label: 'Export to OCEL',
-          description: 'Export CORE metamodel to OCEL format',
-          color: 'core-model',
-          hasInputs: true,
-          hasOutputs: false,
-        },
+        // {
+        //   type: 'export-ocel',
+        //   label: 'Export to OCEL',
+        //   description: 'Export CORE metamodel to OCEL format',
+        //   color: 'core-model',
+        //   hasInputs: true,
+        //   hasOutputs: false,
+        // },
         {
           type: 'ocpm-discovery',
           label: 'OCPM Discovery',
