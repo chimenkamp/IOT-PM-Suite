@@ -1,3 +1,5 @@
+// src/app/app.ts - Updated with improved layout structure
+
 import { Component, OnInit, ViewChild, ChangeDetectorRef } from '@angular/core';
 import { FFlowModule } from '@foblex/flow';
 import { NodeService } from './services/node.service';
@@ -118,13 +120,28 @@ interface NodeDefinition {
                       [attr.data-node-type]="node.type"
                       [title]="node.description">
                       <div class="node-preview" [class]="'node-preview-' + node.color">
-                        <div class="node-label">{{ node.label }}</div>
-                        <div class="node-ports">
-                          @if (node.hasInputs) {
-                          <div class="port" [class]="node.color"></div>
+                        <!-- Input Ports -->
+                        <div class="node-input-ports">
+                          @for (input of getNodeInputs(node.type); track input.id) {
+                          <div
+                            class="preview-port"
+                            [class]="input.color"
+                            [attr.data-label]="input.label">
+                          </div>
                           }
-                          @if (node.hasOutputs) {
-                          <div class="port" [class]="node.color"></div>
+                        </div>
+
+                        <!-- Node Label -->
+                        <div class="node-label">{{ node.label }}</div>
+
+                        <!-- Output Ports -->
+                        <div class="node-output-ports">
+                          @for (output of getNodeOutputs(node.type); track output.id) {
+                          <div
+                            class="preview-port"
+                            [class]="output.color"
+                            [attr.data-label]="output.label">
+                          </div>
                           }
                         </div>
                       </div>
@@ -530,7 +547,130 @@ export class AppComponent implements OnInit {
       this.nodeService.addNode(nodeType, canvasPosition);
     }
   }
+    /**
+   * Get input ports for a node type.
+   */
+  getNodeInputs(nodeType: string) {
+    const nodeDefinitions: Record<string, any> = {
+      'read-file': { inputs: [] },
+      'xml-trace-extractor': { inputs: [{ id: 'input-0', color: 'nord-blue', label: 'XML Data' }] },
+      'case-object-extractor': { inputs: [{ id: 'input-0', color: 'nord-red', label: 'Traces' }] },
+      'stream-point-extractor': { inputs: [{ id: 'input-0', color: 'nord-red', label: 'Traces' }] },
+      'iot-event-from-stream': { inputs: [
+        { id: 'input-0', color: 'nord-red', label: 'Stream Points' },
+        { id: 'input-1', color: 'nord-yellow', label: 'Case ID' }
+      ]},
+      'trace-event-linker': { inputs: [
+        { id: 'input-0', color: 'nord-green', label: 'IoT Events' },
+        { id: 'input-1', color: 'nord-purple', label: 'Case Objects' }
+      ]},
+      'xml-element-selector': { inputs: [{ id: 'input-0', color: 'nord-blue', label: 'XML Data' }] },
+      'xml-attribute-extractor': { inputs: [{ id: 'input-0', color: 'nord-red', label: 'XML Elements' }] },
+      'nested-list-processor': { inputs: [{ id: 'input-0', color: 'nord-red', label: 'Nested Data' }] },
+      'lifecycle-calculator': { inputs: [{ id: 'input-0', color: 'nord-red', label: 'Stream Points' }] },
+      'stream-aggregator': { inputs: [{ id: 'input-0', color: 'nord-red', label: 'Stream Points' }] },
+      'stream-event-creator': { inputs: [
+        { id: 'input-0', color: 'nord-red', label: 'Stream Points' },
+        { id: 'input-1', color: 'nord-yellow', label: 'Case Context' }
+      ]},
+      'stream-metadata-extractor': { inputs: [{ id: 'input-0', color: 'nord-red', label: 'Stream Points' }] },
+      'column-selector': { inputs: [{ id: 'input-0', color: 'nord-blue', label: 'Raw Data' }] },
+      'attribute-selector': { inputs: [{ id: 'input-0', color: 'nord-red', label: 'Series' }] },
+      'data-filter': { inputs: [{ id: 'input-0', color: 'nord-red', label: 'Series' }] },
+      'data-mapper': { inputs: [{ id: 'input-0', color: 'nord-red', label: 'Series' }] },
+      'attribute-mapper': { inputs: [{ id: 'input-0', color: 'nord-red', label: 'Source Data' }] },
+      'iot-event': { inputs: [
+        { id: 'input-0', color: 'nord-yellow', label: 'ID' },
+        { id: 'input-1', color: 'nord-yellow', label: 'Type' },
+        { id: 'input-2', color: 'nord-yellow', label: 'Timestamp' },
+        { id: 'input-3', color: 'nord-yellow', label: 'Metadata' }
+      ]},
+      'process-event': { inputs: [
+        { id: 'input-0', color: 'nord-yellow', label: 'ID' },
+        { id: 'input-1', color: 'nord-yellow', label: 'Type' },
+        { id: 'input-2', color: 'nord-yellow', label: 'Timestamp' },
+        { id: 'input-3', color: 'nord-yellow', label: 'Metadata' },
+        { id: 'input-4', color: 'nord-yellow', label: 'Activity Label' }
+      ]},
+      'object-creator': { inputs: [
+        { id: 'input-0', color: 'nord-yellow', label: 'ID' },
+        { id: 'input-1', color: 'nord-yellow', label: 'Type' },
+        { id: 'input-2', color: 'nord-yellow', label: 'Class' },
+        { id: 'input-3', color: 'nord-yellow', label: 'Metadata' }
+      ]},
+      'dynamic-object-creator': { inputs: [
+        { id: 'input-0', color: 'nord-yellow', label: 'Object ID' },
+        { id: 'input-1', color: 'nord-yellow', label: 'Object Type' },
+        { id: 'input-2', color: 'nord-red', label: 'Attributes Data' }
+      ]},
+      'unique-id-generator': { inputs: [] },
+      'object-class-selector': { inputs: [] },
+      'event-object-relation': { inputs: [
+        { id: 'input-0', color: 'nord-green', label: 'Event' },
+        { id: 'input-1', color: 'nord-purple', label: 'Object' }
+      ]},
+      'event-event-relation': { inputs: [
+        { id: 'input-0', color: 'nord-green', label: 'Source Event' },
+        { id: 'input-1', color: 'nord-green', label: 'Target Event' }
+      ]},
+      'context-based-linker': { inputs: [
+        { id: 'input-0', color: 'nord-green', label: 'Events' },
+        { id: 'input-1', color: 'nord-purple', label: 'Objects' }
+      ]},
+      'core-metamodel': { inputs: [
+        { id: 'input-0', color: 'nord-green', label: 'Process Events' },
+        { id: 'input-1', color: 'nord-green', label: 'IoT Events' },
+        { id: 'input-2', color: 'nord-orange', label: 'Relationships' },
+        { id: 'input-3', color: 'nord-purple', label: 'Objects' }
+      ]},
+      'table-output': { inputs: [{ id: 'input-0', color: 'core-model', label: 'Data' }] },
+      'export-ocel': { inputs: [{ id: 'input-0', color: 'core-model', label: 'CORE Metamodel' }] },
+      'ocpm-discovery': { inputs: [{ id: 'input-0', color: 'core-model', label: 'CORE Metamodel' }] }
+    };
 
+    return nodeDefinitions[nodeType]?.inputs || [];
+  }
+
+  /**
+   * Get output ports for a node type.
+   */
+  getNodeOutputs(nodeType: string) {
+    const nodeDefinitions: Record<string, any> = {
+      'read-file': { outputs: [{ id: 'output-0', color: 'nord-blue', label: 'Raw Data' }] },
+      'xml-trace-extractor': { outputs: [{ id: 'output-0', color: 'nord-red', label: 'Traces' }] },
+      'case-object-extractor': { outputs: [{ id: 'output-0', color: 'nord-purple', label: 'Case Objects' }] },
+      'stream-point-extractor': { outputs: [{ id: 'output-0', color: 'nord-red', label: 'Stream Points' }] },
+      'iot-event-from-stream': { outputs: [{ id: 'output-0', color: 'nord-green', label: 'IoT Events' }] },
+      'trace-event-linker': { outputs: [{ id: 'output-0', color: 'nord-orange', label: 'E-O Relationships' }] },
+      'xml-element-selector': { outputs: [{ id: 'output-0', color: 'nord-red', label: 'Elements' }] },
+      'xml-attribute-extractor': { outputs: [{ id: 'output-0', color: 'nord-yellow', label: 'Attributes' }] },
+      'nested-list-processor': { outputs: [{ id: 'output-0', color: 'nord-red', label: 'Flattened Data' }] },
+      'lifecycle-calculator': { outputs: [{ id: 'output-0', color: 'nord-yellow', label: 'Lifecycle Data' }] },
+      'stream-aggregator': { outputs: [{ id: 'output-0', color: 'nord-red', label: 'Aggregated Data' }] },
+      'stream-event-creator': { outputs: [{ id: 'output-0', color: 'nord-green', label: 'Stream Events' }] },
+      'stream-metadata-extractor': { outputs: [{ id: 'output-0', color: 'nord-yellow', label: 'Stream Metadata' }] },
+      'column-selector': { outputs: [{ id: 'output-0', color: 'nord-red', label: 'Series' }] },
+      'attribute-selector': { outputs: [{ id: 'output-0', color: 'nord-yellow', label: 'Attribute' }] },
+      'data-filter': { outputs: [{ id: 'output-0', color: 'nord-red', label: 'Series' }] },
+      'data-mapper': { outputs: [{ id: 'output-0', color: 'nord-red', label: 'Series' }] },
+      'attribute-mapper': { outputs: [{ id: 'output-0', color: 'nord-yellow', label: 'Mapped Attributes' }] },
+      'iot-event': { outputs: [{ id: 'output-0', color: 'nord-green', label: 'IoT Event' }] },
+      'process-event': { outputs: [{ id: 'output-0', color: 'nord-green', label: 'Process Event' }] },
+      'object-creator': { outputs: [{ id: 'output-0', color: 'nord-purple', label: 'Object' }] },
+      'dynamic-object-creator': { outputs: [{ id: 'output-0', color: 'nord-purple', label: 'Objects' }] },
+      'unique-id-generator': { outputs: [{ id: 'output-0', color: 'nord-yellow', label: 'ID' }] },
+      'object-class-selector': { outputs: [{ id: 'output-0', color: 'nord-yellow', label: 'Class' }] },
+      'event-object-relation': { outputs: [{ id: 'output-0', color: 'nord-orange', label: 'E-O Relationship' }] },
+      'event-event-relation': { outputs: [{ id: 'output-0', color: 'nord-orange', label: 'E-E Relationship' }] },
+      'context-based-linker': { outputs: [{ id: 'output-0', color: 'nord-orange', label: 'Context Relationships' }] },
+      'core-metamodel': { outputs: [{ id: 'output-0', color: 'core-model', label: 'CORE Metamodel' }] },
+      'table-output': { outputs: [] },
+      'export-ocel': { outputs: [] },
+      'ocpm-discovery': { outputs: [] }
+    };
+
+    return nodeDefinitions[nodeType]?.outputs || [];
+  }
   /**
    * Transform drop event coordinates to canvas coordinates.
    */
@@ -615,7 +755,7 @@ export class AppComponent implements OnInit {
           this.nodeService.highlightErrorNodes(result.logs || []);
         }
 
-        // this.showLogDialog(result);
+        this.showLogDialog(result);
         if (result.results) {
           this.showResults(result.results);
         }
