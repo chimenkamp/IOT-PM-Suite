@@ -751,6 +751,7 @@ export class AppComponent implements OnInit {
     if (!this.canExecutePipeline()) {
       this.snackBar.open('Pipeline cannot be executed. Please add nodes and connections.', 'Close', {
         duration: 5000,
+        panelClass: 'snackbar-style'
       });
       return;
     }
@@ -787,6 +788,7 @@ export class AppComponent implements OnInit {
         this.updateExecutionStatus('failed', '❌', 'Execution failed');
         this.snackBar.open(`Pipeline execution failed: ${error}`, 'Close', {
           duration: 8000,
+          panelClass: 'snackbar-style'
         });
       },
     });
@@ -805,6 +807,7 @@ export class AppComponent implements OnInit {
         if (result.isValid) {
           this.snackBar.open('Pipeline is valid and ready for execution!', 'Close', {
             duration: 3000,
+            panelClass: 'snackbar-style'
           });
         } else {
           const errorMessage = 'Pipeline validation failed:\n' +
@@ -813,6 +816,7 @@ export class AppComponent implements OnInit {
 
           this.snackBar.open('Pipeline validation failed - see console for details', 'Close', {
             duration: 5000,
+            panelClass: 'snackbar-style'
           });
           console.error(errorMessage);
         }
@@ -820,6 +824,7 @@ export class AppComponent implements OnInit {
       error: (error) => {
         this.snackBar.open(`Pipeline validation failed: ${error}`, 'Close', {
           duration: 5000,
+          panelClass: 'snackbar-style'
         });
       },
     });
@@ -846,6 +851,7 @@ private showResults(results: any): void {
 
     this.snackBar.open('Process model generated and displayed in OCPM Discovery node', 'View Node', {
       duration: 5000,
+      panelClass: 'snackbar-style'
     });
   }
 
@@ -876,6 +882,8 @@ private showResults(results: any): void {
 
     this.snackBar.open('Table output generated and ready for download', 'View Node', {
       duration: 5000,
+      panelClass: 'snackbar-style'
+
     });
   }
 
@@ -883,6 +891,7 @@ private showResults(results: any): void {
   if (results.core_model) {
     this.snackBar.open('CORE Model successfully created', 'View Details', {
       duration: 5000,
+      panelClass: 'snackbar-style'
     });
   }
 }
@@ -1015,7 +1024,7 @@ private getFormatFromExtension(extension: string): string {
       const file = (event.target as HTMLInputElement).files?.[0];
       if (file) {
         // Handle file upload logic here
-        this.snackBar.open(`Selected file: ${file.name}`, 'Close', { duration: 3000 });
+        this.snackBar.open(`Selected file: ${file.name}`, 'Close', { duration: 3000, panelClass: 'snackbar-style' });
       }
     };
 
@@ -1034,7 +1043,7 @@ private getFormatFromExtension(extension: string): string {
       const file = (event.target as HTMLInputElement).files?.[0];
       if (file) {
         // Handle pipeline loading logic here
-        this.snackBar.open(`Loading pipeline: ${file.name}`, 'Close', { duration: 3000 });
+        this.snackBar.open(`Loading pipeline: ${file.name}`, 'Close', { duration: 3000, panelClass: 'snackbar-style' });
       }
     };
 
@@ -1046,6 +1055,6 @@ private getFormatFromExtension(extension: string): string {
    */
   loadExamplePipeline(): void {
     // Load example pipeline logic
-    this.snackBar.open('Loading example pipeline...', 'Close', { duration: 3000 });
+    this.snackBar.open('Loading example pipeline...', 'Close', { duration: 3000, panelClass: 'snackbar-style' });
   }
 }
