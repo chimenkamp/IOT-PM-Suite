@@ -1,39 +1,46 @@
-// src/app/app.scss
+// src/app/app.scss - Redesigned with better layout management
 
 :host {
   display: block;
   height: 100vh;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  overflow: hidden;
 }
 
 .app-container {
   display: flex;
   height: 100%;
-  background-color: #2e3440; /* Nord polar night */
+  background-color: #2e3440;
+  position: relative;
 }
 
-// ============ SIDEBAR STYLING ============
+// ============ SIDEBAR REDESIGN ============
 .sidebar {
-  width: 350px;
-  min-width: 350px;
-  max-width: 450px;
+  width: 380px;
+  min-width: 300px;
+  max-width: 500px;
   background-color: #3b4252;
   border-right: 1px solid #434c5e;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  position: relative;
+  z-index: 100;
+  resize: horizontal;
 }
 
+// ============ SIDEBAR HEADER ============
 .sidebar-header {
-  padding: 1.5rem 1rem 1rem 1rem;
+  padding: 1rem;
   border-bottom: 1px solid #434c5e;
   background-color: #2e3440;
+  flex-shrink: 0;
 }
 
 .sidebar-header h2 {
   color: #eceff4;
-  margin: 0 0 0.5rem 0;
-  font-size: 1.1rem;
+  margin: 0 0 0.25rem 0;
+  font-size: 1rem;
   font-weight: 600;
   line-height: 1.2;
 }
@@ -41,20 +48,139 @@
 .sidebar-header p {
   color: #d8dee9;
   margin: 0;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   opacity: 0.8;
   line-height: 1.3;
 }
 
-// ============ NODE LIBRARY ============
-.node-library {
+// ============ QUICK ACTIONS BAR ============
+.quick-actions {
+  padding: 0.75rem 1rem;
+  background-color: rgba(94, 129, 172, 0.1);
+  border-bottom: 1px solid #434c5e;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.quick-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.6rem 0.8rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #eceff4;
+  text-align: center;
+  min-height: 40px;
+}
+
+.execute-btn {
+  background-color: #a3be8c;
+  color: #2e3440;
+  border: 2px solid #a3be8c;
+
+  &:hover:not(:disabled) {
+    background-color: #b8d4a3;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(163, 190, 140, 0.4);
+  }
+
+  &:disabled {
+    background-color: #6b7280;
+    border-color: #6b7280;
+    color: #9ca3af;
+    cursor: not-allowed;
+  }
+}
+
+.validate-btn {
+  background-color: #5e81ac;
+  border: 2px solid #5e81ac;
+
+  &:hover:not(:disabled) {
+    background-color: #81a1c1;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(94, 129, 172, 0.4);
+  }
+}
+
+// ============ SIDEBAR CONTENT AREA ============
+.sidebar-content {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+// ============ TABS FOR ORGANIZATION ============
+.sidebar-tabs {
+  display: flex;
+  background-color: #434c5e;
+  border-bottom: 1px solid #4c566a;
+  flex-shrink: 0;
+}
+
+.sidebar-tab {
+  flex: 1;
+  padding: 0.75rem 0.5rem;
+  background: none;
+  border: none;
+  color: #d8dee9;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+  border-bottom: 2px solid transparent;
+
+  &.active {
+    color: #88c0d0;
+    background-color: rgba(136, 192, 208, 0.1);
+    border-bottom-color: #88c0d0;
+  }
+
+  &:hover:not(.active) {
+    color: #eceff4;
+    background-color: rgba(76, 86, 106, 0.5);
+  }
+}
+
+// ============ TAB CONTENT ============
+.tab-content {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+.tab-panel {
+  height: 100%;
   overflow-y: auto;
-  padding: 0.5rem 0;
+  display: none;
+
+  &.active {
+    display: block;
+  }
+}
+
+// ============ NODE LIBRARY (REDESIGNED) ============
+.node-library {
+  padding: 0.5rem;
+  height: 100%;
 }
 
 .category-section {
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.75rem;
+  border: 1px solid #434c5e;
+  border-radius: 8px;
+  overflow: hidden;
+  background-color: rgba(76, 86, 106, 0.2);
 }
 
 .category-header {
@@ -63,17 +189,12 @@
   padding: 0.75rem 1rem;
   cursor: pointer;
   background-color: #434c5e;
-  border-bottom: 1px solid #4c566a;
   transition: background-color 0.2s ease;
   user-select: none;
-}
 
-.category-header:hover {
-  background-color: #4c566a;
-}
-
-.category-header.collapsed {
-  border-bottom: none;
+  &:hover {
+    background-color: #4c566a;
+  }
 }
 
 .category-icon {
@@ -82,175 +203,203 @@
   margin-right: 0.5rem;
   width: 12px;
   transition: transform 0.2s ease;
+
+  &.collapsed {
+    transform: rotate(-90deg);
+  }
 }
 
 .category-header h3 {
   color: #eceff4;
   margin: 0;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 600;
   flex: 1;
 }
 
 .category-content {
-  padding: 0.5rem;
-  background-color: rgba(46, 52, 64, 0.5);
+  padding: 0.75rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  background-color: rgba(46, 52, 64, 0.3);
 }
 
+// ============ COMPACT NODE PREVIEWS ============
 .library-node {
   cursor: grab;
   transition: transform 0.2s ease;
-  margin-bottom: 0.5rem;
-}
 
-.library-node:hover {
-  transform: translateX(4px);
-}
+  &:hover {
+    transform: scale(1.02);
+  }
 
-.library-node:active {
-  cursor: grabbing;
+  &:active {
+    cursor: grabbing;
+  }
 }
 
 .node-preview {
-  border-radius: 8px;
-  padding: 0.6rem 0.8rem;
+  border-radius: 6px;
+  padding: 0.5rem;
   color: #eceff4;
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   position: relative;
-  min-height: 36px;
+  min-height: 60px;
   background-color: #4c566a;
   border: 2px solid transparent;
   transition: all 0.2s ease;
-}
+  text-align: center;
 
-.node-preview:hover {
-  background-color: #5e81ac;
-  border-color: #81a1c1;
+  &:hover {
+    border-color: #88c0d0;
+    box-shadow: 0 2px 8px rgba(136, 192, 208, 0.3);
+  }
 }
 
 .node-label {
-  flex: 1;
-  text-align: center;
   font-weight: 500;
   line-height: 1.2;
+  margin-bottom: 0.25rem;
 }
 
-.input-port, .output-port {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  border: 2px solid #2e3440;
-  position: relative;
-  flex-shrink: 0;
-}
-
-.output-port {
-  margin-left: 8px;
-}
-
-.input-port {
-  margin-right: 8px;
+.node-ports {
+  display: flex;
+  gap: 0.25rem;
+  margin-top: 0.25rem;
 }
 
 .port {
-  width: 10px;
-  height: 10px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
-  border: 2px solid #2e3440;
+  border: 1px solid #2e3440;
 }
 
-// ============ SIDEBAR FOOTER ============
-.sidebar-footer {
+// ============ TOOLBAR TAB ============
+.toolbar-content {
   padding: 1rem;
-  border-top: 1px solid #434c5e;
-  background-color: #2e3440;
-}
-
-.port-legend {
-  margin-bottom: 1rem;
-}
-
-.port-legend h4 {
-  color: #eceff4;
-  margin: 0 0 0.75rem 0;
-  font-size: 0.8rem;
-  font-weight: 600;
-}
-
-.legend-item {
-  display: flex;
-  align-items: center;
-  margin-bottom: 0.4rem;
-  font-size: 0.7rem;
-  color: #d8dee9;
-}
-
-.legend-item .port {
-  width: 8px;
-  height: 8px;
-  margin-right: 0.5rem;
-  border-width: 1px;
-}
-
-// ============ PIPELINE CONTROLS ============
-.pipeline-controls {
+  height: 100%;
   display: flex;
   flex-direction: column;
+  gap: 1rem;
+}
+
+.toolbar-section {
+  background-color: rgba(76, 86, 106, 0.2);
+  border: 1px solid #434c5e;
+  border-radius: 8px;
+  overflow: hidden;
+
+  h4 {
+    color: #eceff4;
+    margin: 0;
+    padding: 0.75rem 1rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    background-color: #434c5e;
+    border-bottom: 1px solid #4c566a;
+  }
+
+  .section-content {
+    padding: 0.75rem;
+  }
+}
+
+.button-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 0.5rem;
 }
 
-.control-button {
+.toolbar-button {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  padding: 0.6rem 1rem;
-  border: none;
-  border-radius: 6px;
-  font-size: 0.75rem;
+  gap: 0.3rem;
+  padding: 0.5rem;
+  border: 1px solid #5e81ac;
+  border-radius: 4px;
+  background-color: #4c566a;
+  color: #eceff4;
+  font-size: 0.7rem;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
-  color: #eceff4;
-  min-height: 36px;
-}
+  min-height: 32px;
 
-.execute-button {
-  background-color: #a3be8c;
-  color: #2e3440;
-  border: 2px solid #a3be8c;
-  width: 100%;
-  height: 100%;
   &:hover:not(:disabled) {
-    background-color: #b8d4a3;
-    border-color: #b8d4a3;
+    background-color: #5e81ac;
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(163, 190, 140, 0.3);
   }
 
   &:disabled {
-    background-color: #6b7280;
-    border-color: #6b7280;
-    color: #9ca3af;
+    opacity: 0.5;
     cursor: not-allowed;
-    transform: none;
-    box-shadow: none;
   }
 }
 
-.validate-button {
-  background-color: #5e81ac;
-  border: 2px solid #5e81ac;
+// ============ STATUS TAB ============
+.status-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
 
-  &:hover:not(:disabled) {
-    background-color: #81a1c1;
-    border-color: #81a1c1;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(94, 129, 172, 0.3);
+.status-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem;
+  background-color: rgba(76, 86, 106, 0.3);
+  border-radius: 4px;
+  border: 1px solid rgba(94, 129, 172, 0.2);
+}
+
+.status-label {
+  color: #d8dee9;
+  font-size: 0.7rem;
+  font-weight: 500;
+}
+
+.status-value {
+  color: #88c0d0;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+// ============ CONNECTION STATUS ============
+.connection-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+
+  &.connected {
+    background-color: rgba(163, 190, 140, 0.1);
+    border: 1px solid rgba(163, 190, 140, 0.3);
+    color: #a3be8c;
   }
+
+  &.disconnected {
+    background-color: rgba(191, 97, 106, 0.1);
+    border: 1px solid rgba(191, 97, 106, 0.3);
+    color: #bf616a;
+  }
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: currentColor;
+  animation: pulse 2s infinite;
 }
 
 // ============ EDITOR CONTAINER ============
@@ -258,13 +407,13 @@
   flex: 1;
   position: relative;
   overflow: hidden;
+  background-color: #2e3440;
 }
 
 .flow-editor {
   width: 100%;
   height: 100%;
   position: relative;
-  background-color: #2e3440;
 }
 
 .grid-background {
@@ -280,6 +429,47 @@
   pointer-events: none;
 }
 
+// ============ FLOATING TOOLBAR (OVERLAY) ============
+.floating-toolbar {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  background-color: #3b4252;
+  border: 1px solid #434c5e;
+  border-radius: 8px;
+  padding: 0.5rem;
+  display: flex;
+  gap: 0.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  opacity: 0.9;
+  transition: opacity 0.2s ease;
+
+  &:hover {
+    opacity: 1;
+  }
+}
+
+.floating-btn {
+  padding: 0.5rem;
+  background-color: #4c566a;
+  border: 1px solid #5e81ac;
+  border-radius: 4px;
+  color: #eceff4;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.7rem;
+  min-width: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    background-color: #5e81ac;
+    transform: translateY(-1px);
+  }
+}
+
 // ============ NORD COLOR CLASSES ============
 .nord-blue { background-color: #5e81ac; }
 .nord-green { background-color: #a3be8c; }
@@ -289,105 +479,55 @@
 .nord-yellow { background-color: #ebcb8b; }
 .core-model { background-color: #88c0d0; }
 
-// ============ NODE PREVIEW COLOR VARIATIONS ============
-.node-preview-nord-blue {
-  border-color: #5e81ac;
-  background: linear-gradient(135deg, rgba(94, 129, 172, 0.1), rgba(94, 129, 172, 0.05));
-}
-
-.node-preview-nord-green {
-  border-color: #a3be8c;
-  background: linear-gradient(135deg, rgba(163, 190, 140, 0.1), rgba(163, 190, 140, 0.05));
-}
-
-.node-preview-nord-purple {
-  border-color: #b48ead;
-  background: linear-gradient(135deg, rgba(180, 142, 173, 0.1), rgba(180, 142, 173, 0.05));
-}
-
-.node-preview-nord-red {
-  border-color: #bf616a;
-  background: linear-gradient(135deg, rgba(191, 97, 106, 0.1), rgba(191, 97, 106, 0.05));
-}
-
-.node-preview-nord-orange {
-  border-color: #d08770;
-  background: linear-gradient(135deg, rgba(208, 135, 112, 0.1), rgba(208, 135, 112, 0.05));
-}
-
-.node-preview-nord-yellow {
-  border-color: #ebcb8b;
-  background: linear-gradient(135deg, rgba(235, 203, 139, 0.1), rgba(235, 203, 139, 0.05));
-}
-
-.node-preview-core-model {
-  border-color: #88c0d0;
-  background: linear-gradient(135deg, rgba(136, 192, 208, 0.1), rgba(136, 192, 208, 0.05));
-}
-
-// ============ HOVER EFFECTS ============
-.node-preview-nord-blue:hover {
-  background-color: rgba(94, 129, 172, 0.2);
-  box-shadow: 0 4px 12px rgba(94, 129, 172, 0.15);
-}
-.node-preview-nord-green:hover {
-  background-color: rgba(163, 190, 140, 0.2);
-  box-shadow: 0 4px 12px rgba(163, 190, 140, 0.15);
-}
-.node-preview-nord-purple:hover {
-  background-color: rgba(180, 142, 173, 0.2);
-  box-shadow: 0 4px 12px rgba(180, 142, 173, 0.15);
-}
-.node-preview-nord-red:hover {
-  background-color: rgba(191, 97, 106, 0.2);
-  box-shadow: 0 4px 12px rgba(191, 97, 106, 0.15);
-}
-.node-preview-nord-orange:hover {
-  background-color: rgba(208, 135, 112, 0.2);
-  box-shadow: 0 4px 12px rgba(208, 135, 112, 0.15);
-}
-.node-preview-nord-yellow:hover {
-  background-color: rgba(235, 203, 139, 0.2);
-  box-shadow: 0 4px 12px rgba(235, 203, 139, 0.15);
-}
-.node-preview-core-model:hover {
-  background-color: rgba(136, 192, 208, 0.2);
-  box-shadow: 0 4px 12px rgba(136, 192, 208, 0.15);
-}
-
 // ============ SCROLLBAR STYLING ============
-.node-library::-webkit-scrollbar {
+.tab-panel::-webkit-scrollbar, .toolbar-content::-webkit-scrollbar {
   width: 6px;
 }
 
-.node-library::-webkit-scrollbar-track {
+.tab-panel::-webkit-scrollbar-track, .toolbar-content::-webkit-scrollbar-track {
   background: #3b4252;
 }
 
-.node-library::-webkit-scrollbar-thumb {
+.tab-panel::-webkit-scrollbar-thumb, .toolbar-content::-webkit-scrollbar-thumb {
   background: #4c566a;
   border-radius: 3px;
 }
 
-.node-library::-webkit-scrollbar-thumb:hover {
+.tab-panel::-webkit-scrollbar-thumb:hover, .toolbar-content::-webkit-scrollbar-thumb:hover {
   background: #5e81ac;
+}
+
+// ============ ANIMATIONS ============
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
 
 // ============ RESPONSIVE DESIGN ============
 @media (max-width: 1400px) {
   .sidebar {
     width: 320px;
-    min-width: 320px;
+    min-width: 280px;
+  }
+
+  .category-content {
+    grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 1200px) {
   .sidebar {
     width: 300px;
-    min-width: 300px;
+    min-width: 260px;
   }
 
-  .node-label {
+  .quick-actions {
+    grid-template-columns: 1fr;
+    gap: 0.25rem;
+  }
+
+  .quick-action-btn {
+    padding: 0.5rem;
     font-size: 0.7rem;
   }
 }
@@ -399,64 +539,30 @@
 
   .sidebar {
     width: 100%;
-    max-width: 100%;
-    height: 40vh;
-    position: relative;
-    z-index: 1000;
+    height: 50vh;
+    min-width: 100%;
+    resize: none;
   }
 
   .editor-container {
-    height: 60vh;
+    height: 50vh;
   }
 
-  .pipeline-controls {
-    flex-direction: row;
-  }
-
-  .control-button {
-    flex: 1;
-    font-size: 0.7rem;
-    padding: 0.5rem;
+  .floating-toolbar {
+    position: relative;
+    top: auto;
+    right: auto;
+    margin: 0.5rem;
   }
 }
 
-@media (max-width: 480px) {
-  .sidebar-header {
-    padding: 1rem 0.75rem;
-  }
-
-  .sidebar-header h2 {
-    font-size: 1rem;
-  }
-
-  .sidebar-header p {
-    font-size: 0.75rem;
-  }
-
-  .category-header {
-    padding: 0.6rem 0.75rem;
-  }
-
-  .sidebar-footer {
-    padding: 0.75rem;
-  }
-
-  .node-preview {
-    padding: 0.5rem 0.6rem;
-    min-height: 32px;
-  }
-
-  .node-label {
-    font-size: 0.65rem;
-  }
-}
 // ============ EXECUTION STATUS ============
 .execution-status {
-  margin-top: 1rem;
   padding: 0.75rem;
   border-radius: 6px;
   border: 1px solid #434c5e;
-  background-color: #3b4252;
+  background-color: rgba(76, 86, 106, 0.2);
+  margin-top: 1rem;
 
   .status-indicator {
     display: flex;
@@ -464,191 +570,15 @@
     gap: 0.5rem;
     margin-bottom: 0.5rem;
 
-    .status-icon {
-      font-size: 0.9rem;
-    }
-
     .status-text {
       color: #eceff4;
-      font-size: 0.8rem;
+      font-size: 0.75rem;
       font-weight: 500;
     }
   }
 
-  .view-logs-btn {
-    padding: 0.4rem 0.6rem;
-    background-color: #5e81ac;
-    color: #eceff4;
-    border: none;
-    border-radius: 4px;
-    font-size: 0.7rem;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-
-    &:hover {
-      background-color: #81a1c1;
-    }
-  }
-
-  &.idle {
-    border-color: #434c5e;
-    background-color: #3b4252;
-  }
-
-  &.running {
-    border-color: #d08770;
-    background-color: rgba(208, 135, 112, 0.1);
-
-    .status-text {
-      color: #d08770;
-    }
-  }
-
-  &.success {
-    border-color: #a3be8c;
-    background-color: rgba(163, 190, 140, 0.1);
-
-    .status-text {
-      color: #a3be8c;
-    }
-  }
-
-  &.partial {
-    border-color: #ebcb8b;
-    background-color: rgba(235, 203, 139, 0.1);
-
-    .status-text {
-      color: #ebcb8b;
-    }
-  }
-
-  &.failed {
-    border-color: #bf616a;
-    background-color: rgba(191, 97, 106, 0.1);
-
-    .status-text {
-      color: #bf616a;
-    }
-  }
-}
-
-// ============ NODE ERROR HIGHLIGHTING ============
-.node-error {
-  border: 2px solid #bf616a !important;
-  background-color: rgba(191, 97, 106, 0.1) !important;
-  box-shadow: 0 0 10px rgba(191, 97, 106, 0.3) !important;
-  animation: error-pulse 2s ease-in-out infinite;
-
-  &::after {
-    content: '⚠️';
-    position: absolute;
-    top: -8px;
-    right: -8px;
-    background-color: #bf616a;
-    color: white;
-    border-radius: 50%;
-    width: 20px;
-    height: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 12px;
-    z-index: 1000;
-  }
-}
-
-@keyframes error-pulse {
-  0%, 100% {
-    box-shadow: 0 0 10px rgba(191, 97, 106, 0.3);
-  }
-  50% {
-    box-shadow: 0 0 20px rgba(191, 97, 106, 0.6);
-  }
-}
-
-// ============ CONNECTION STATUS ============
-.connection-status {
-  position: fixed;
-  top: 1rem;
-  right: 1rem;
-  padding: 0.5rem 0.75rem;
-  border-radius: 20px;
-  background-color: #3b4252;
-  border: 1px solid #434c5e;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.8rem;
-  z-index: 1000;
-  transition: all 0.3s ease;
-
-  .status-icon {
-    font-size: 0.7rem;
-  }
-
-  .status-text {
-    color: #eceff4;
-    font-weight: 500;
-  }
-
-  &.connected {
-    border-color: #a3be8c;
-    background-color: rgba(163, 190, 140, 0.1);
-
-    .status-text {
-      color: #a3be8c;
-    }
-  }
-
-  &.disconnected {
-    border-color: #bf616a;
-    background-color: rgba(191, 97, 106, 0.1);
-
-    .status-text {
-      color: #bf616a;
-    }
-  }
-}
-
-// ============ LOG DIALOG OVERRIDES ============
-.cdk-overlay-pane {
-  .log-dialog {
-    .mat-mdc-dialog-container {
-      --mdc-dialog-container-color: #2e3440;
-      --mdc-dialog-subhead-color: #eceff4;
-      --mdc-dialog-supporting-text-color: #d8dee9;
-    }
-
-    .mat-mdc-button {
-      --mdc-text-button-label-text-color: #88c0d0;
-
-      &.mat-primary {
-        --mdc-filled-button-container-color: #5e81ac;
-        --mdc-filled-button-label-text-color: #eceff4;
-      }
-    }
-
-    .mat-mdc-chip {
-      --mdc-chip-label-text-color: #eceff4;
-      --mdc-chip-outline-color: #434c5e;
-    }
-  }
-}
-
-// ============ SNACKBAR OVERRIDES ============
-.mat-mdc-snack-bar-container {
-  --mdc-snackbar-container-color: #3b4252;
-  --mdc-snackbar-supporting-text-color: #eceff4;
-
-  .mdc-snackbar__action {
-    --mdc-snackbar-action-label-text-color: #88c0d0;
-  }
-}
-
-// ============ RESPONSIVE DESIGN ============
-@media (max-width: 1400px) {
-  .sidebar {
-    width: 320px;
-    min-width: 320px;
-  }
+  &.running { border-color: #d08770; .status-text { color: #d08770; } }
+  &.success { border-color: #a3be8c; .status-text { color: #a3be8c; } }
+  &.failed { border-color: #bf616a; .status-text { color: #bf616a; } }
+  &.partial { border-color: #ebcb8b; .status-text { color: #ebcb8b; } }
 }

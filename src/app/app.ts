@@ -1,6 +1,5 @@
-// src/app/app.ts - Updated with log dialog and error highlighting
-
-import { Component, OnInit, ViewChild, ChangeDetectorRef } from '@angular/core';import { FFlowModule } from '@foblex/flow';
+import { Component, OnInit, ViewChild, ChangeDetectorRef } from '@angular/core';
+import { FFlowModule } from '@foblex/flow';
 import { NodeService } from './services/node.service';
 import { MappingService } from './services/mapping.service';
 import { PipelineService } from './services/pipeline.service';
@@ -44,140 +43,213 @@ interface NodeDefinition {
   template: `
     <div class="app-container">
       <div class="sidebar">
+        <!-- Header -->
         <div class="sidebar-header">
-          <h2>BROOM: IoT-Enhanced Process Mining</h2>
+          <h2>BROOM: IoT Process Mining</h2>
           <p>
-            Tool<strong>B</strong>ox fo<strong>R</strong>
-            I<strong>O</strong>T-Enhanced Pr<strong>O</strong>cess
-            <strong>M</strong>ining
+            <strong>B</strong>ox fo<strong>r</strong> I<strong>O</strong>T-Enhanced Pr<strong>o</strong>cess <strong>M</strong>ining
           </p>
         </div>
 
-        <!-- Pipeline Operations Toolbar -->
-        <app-mapping-toolbar></app-mapping-toolbar>
-
-        <div class="node-library">
-          @for (category of nodeCategories; track category.title) {
-          <div class="category-section">
-            <div
-              class="category-header"
-              (click)="toggleCategory(category)"
-              [class.collapsed]="category.collapsed"
-            >
-              <span class="category-icon">{{
-                category.collapsed ? '▶' : '▼'
-              }}</span>
-              <h3>{{ category.title }}</h3>
-            </div>
-
-            @if (!category.collapsed) {
-            <div class="category-content">
-              @for (node of category.nodes; track node.type) {
-              <div
-                class="library-node"
-                draggable="true"
-                (dragstart)="onDragStart($event, node.type)"
-                [attr.data-node-type]="node.type"
-                [title]="node.description"
-              >
-                <div
-                  class="node-preview"
-                  [class]="'node-preview-' + node.color"
-                >
-                  @if (node.hasInputs) {
-                  <div class="input-port" [class]="node.color"></div>
-                  }
-                  <span class="node-label">{{ node.label }}</span>
-                  @if (node.hasOutputs) {
-                  <div class="output-port" [class]="node.color"></div>
-                  }
-                </div>
-              </div>
-              }
-            </div>
-            }
-          </div>
-          }
+        <!-- Quick Actions -->
+        <div class="quick-actions">
+          <button
+            class="quick-action-btn execute-btn"
+            (click)="executePipeline()"
+            [disabled]="!canExecutePipeline()"
+            title="Execute the current pipeline">
+            <span>▶️</span>
+            Execute
+          </button>
+          <button
+            class="quick-action-btn validate-btn"
+            (click)="validatePipeline()"
+            title="Validate pipeline connections">
+            <span>✓</span>
+            Validate
+          </button>
         </div>
 
-        <div class="sidebar-footer">
-          <div class="port-legend">
-            <h4>Data Types</h4>
+        <!-- Sidebar Content with Tabs -->
+        <div class="sidebar-content">
+          <!-- Tab Navigation -->
+          <div class="sidebar-tabs">
+            <button
+              class="sidebar-tab"
+              [class.active]="activeTab === 'nodes'"
+              (click)="setActiveTab('nodes')">
+              📦 Nodes
+            </button>
+            <button
+              class="sidebar-tab"
+              [class.active]="activeTab === 'tools'"
+              (click)="setActiveTab('tools')">
+              🔧 Tools
+            </button>
+            <button
+              class="sidebar-tab"
+              [class.active]="activeTab === 'status'"
+              (click)="setActiveTab('status')">
+              📊 Status
+            </button>
+          </div>
 
-            <div class="container">
-              <div class="row">
-                <div class="col">
-                  <div class="legend-item">
-                    <div class="port nord-blue"></div>
-                    <span>Raw Data (DataFrame)</span>
+          <!-- Tab Content -->
+          <div class="tab-content">
+            <!-- Nodes Tab -->
+            <div class="tab-panel" [class.active]="activeTab === 'nodes'">
+              <div class="node-library">
+                @for (category of nodeCategories; track category.title) {
+                <div class="category-section">
+                  <div
+                    class="category-header"
+                    (click)="toggleCategory(category)">
+                    <span class="category-icon" [class.collapsed]="category.collapsed">▼</span>
+                    <h3>{{ category.title }}</h3>
                   </div>
-                  <div class="legend-item">
-                    <div class="port nord-red"></div>
-                    <span>Series</span>
+
+                  @if (!category.collapsed) {
+                  <div class="category-content">
+                    @for (node of category.nodes; track node.type) {
+                    <div
+                      class="library-node"
+                      draggable="true"
+                      (dragstart)="onDragStart($event, node.type)"
+                      [attr.data-node-type]="node.type"
+                      [title]="node.description">
+                      <div class="node-preview" [class]="'node-preview-' + node.color">
+                        <div class="node-label">{{ node.label }}</div>
+                        <div class="node-ports">
+                          @if (node.hasInputs) {
+                          <div class="port" [class]="node.color"></div>
+                          }
+                          @if (node.hasOutputs) {
+                          <div class="port" [class]="node.color"></div>
+                          }
+                        </div>
+                      </div>
+                    </div>
+                    }
                   </div>
-                  <div class="legend-item">
-                    <div class="port nord-yellow"></div>
-                    <span>Attribute</span>
-                  </div>
-                  <div class="legend-item">
-                    <div class="port nord-green"></div>
-                    <span>Events</span>
+                  }
+                </div>
+                }
+              </div>
+            </div>
+
+            <!-- Tools Tab -->
+            <div class="tab-panel" [class.active]="activeTab === 'tools'">
+              <!-- Integration of Mapping Toolbar Component -->
+              <app-mapping-toolbar></app-mapping-toolbar>
+            </div>
+
+            <!-- Status Tab -->
+            <div class="tab-panel" [class.active]="activeTab === 'status'">
+              <div class="toolbar-content">
+                <!-- Pipeline Statistics -->
+                <div class="toolbar-section">
+                  <h4>📊 Pipeline Statistics</h4>
+                  <div class="section-content">
+                    <div class="status-grid">
+                      <div class="status-item">
+                        <span class="status-label">Nodes:</span>
+                        <span class="status-value">{{ getPipelineStats().nodes }}</span>
+                      </div>
+                      <div class="status-item">
+                        <span class="status-label">Connections:</span>
+                        <span class="status-value">{{ getPipelineStats().connections }}</span>
+                      </div>
+                      <div class="status-item">
+                        <span class="status-label">Sources:</span>
+                        <span class="status-value">{{ getPipelineStats().dataSources }}</span>
+                      </div>
+                      <div class="status-item">
+                        <span class="status-label">Outputs:</span>
+                        <span class="status-value">{{ getPipelineStats().outputs }}</span>
+                      </div>
+                      <div class="status-item">
+                        <span class="status-label">Processing:</span>
+                        <span class="status-value">{{ getPipelineStats().processing }}</span>
+                      </div>
+                      <div class="status-item">
+                        <span class="status-label">Errors:</span>
+                        <span class="status-value">{{ getPipelineStats().errors }}</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
-                <div class="col">
-                  <div class="legend-item">
-                    <div class="port nord-purple"></div>
-                    <span>Objects</span>
+
+                <!-- Connection Status -->
+                <div class="toolbar-section">
+                  <h4>🔗 Connection Status</h4>
+                  <div class="section-content">
+                    <div class="connection-indicator" [class]="connectionStatusClass">
+                      <span class="status-dot"></span>
+                      <span>{{ connectionStatusText }}</span>
+                    </div>
                   </div>
-                  <div class="legend-item">
-                    <div class="port nord-orange"></div>
-                    <span>Relationships</span>
-                  </div>
-                  <div class="legend-item">
-                    <div class="port core-model"></div>
-                    <span>CORE Model</span>
+                </div>
+
+                <!-- Data Types Legend -->
+                <div class="toolbar-section">
+                  <h4>🎨 Data Types</h4>
+                  <div class="section-content">
+                    <div class="status-grid">
+                      <div class="status-item">
+                        <div class="port nord-blue"></div>
+                        <span class="status-label">DataFrame</span>
+                      </div>
+                      <div class="status-item">
+                        <div class="port nord-red"></div>
+                        <span class="status-label">Series</span>
+                      </div>
+                      <div class="status-item">
+                        <div class="port nord-yellow"></div>
+                        <span class="status-label">Attribute</span>
+                      </div>
+                      <div class="status-item">
+                        <div class="port nord-green"></div>
+                        <span class="status-label">Events</span>
+                      </div>
+                      <div class="status-item">
+                        <div class="port nord-purple"></div>
+                        <span class="status-label">Objects</span>
+                      </div>
+                      <div class="status-item">
+                        <div class="port nord-orange"></div>
+                        <span class="status-label">Relations</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-
-          <!-- Execution Status Display -->
-          <div class="execution-status" [class]="lastExecutionStatus">
-            <div class="status-indicator">
-              <span class="status-icon">{{ executionStatusIcon }}</span>
-              <span class="status-text">{{ executionStatusText }}</span>
-            </div>
-            @if (lastExecutionResult) {
-            <button
-              class="view-logs-btn"
-              (click)="showLastExecutionLogs()"
-              title="View execution logs"
-            >
-              📋 View Logs
-            </button>
-            }
           </div>
         </div>
       </div>
 
+      <!-- Main Editor Area -->
       <div class="editor-container">
-        <div
-          class="flow-editor"
-          (drop)="onDrop($event)"
-          (dragover)="onDragOver($event)"
-        >
+        <div class="flow-editor" (drop)="onDrop($event)" (dragover)="onDragOver($event)">
           <div class="grid-background"></div>
-          <!-- Add template reference variable -->
           <app-node-editor #nodeEditor></app-node-editor>
         </div>
       </div>
-    </div>
 
-    <!-- Connection Status Indicator -->
-    <div class="connection-status" [class]="connectionStatusClass">
-      <span class="status-icon">{{ connectionStatusIcon }}</span>
-      <span class="status-text">{{ connectionStatusText }}</span>
+      <!-- Floating Toolbar (Optional quick actions) -->
+      <div class="floating-toolbar">
+        <button class="floating-btn" (click)="executePipeline()"
+                [disabled]="!canExecutePipeline()" title="Execute">
+          ▶️
+        </button>
+        <button class="floating-btn" (click)="validatePipeline()" title="Validate">
+          ✓
+        </button>
+        <button class="floating-btn" (click)="clearPipeline()"
+                [disabled]="!hasContent()" title="Clear">
+          🗑️
+        </button>
+      </div>
     </div>
   `,
   styleUrls: ['./app.scss'],
@@ -187,6 +259,9 @@ export class AppComponent implements OnInit {
   connectionStatusClass = 'disconnected';
   connectionStatusIcon = '⚫';
   connectionStatusText = 'Connecting...';
+
+  // Tab management
+  activeTab: 'nodes' | 'tools' | 'status' = 'nodes';
 
   // Execution status tracking
   lastExecutionStatus = 'idle';
@@ -199,6 +274,7 @@ export class AppComponent implements OnInit {
   nodeCategories: NodeCategory[] = [
     {
       title: 'Data Input & Loading',
+      collapsed: false,
       nodes: [
         {
           type: 'read-file',
@@ -212,6 +288,7 @@ export class AppComponent implements OnInit {
     },
     {
       title: 'CAIRO XML Parsing',
+      collapsed: true,
       nodes: [
         {
           type: 'xml-trace-extractor',
@@ -224,8 +301,7 @@ export class AppComponent implements OnInit {
         {
           type: 'case-object-extractor',
           label: 'Case Object Extractor',
-          description:
-            'Extract case objects from trace data with lifecycle information',
+          description: 'Extract case objects from trace data with lifecycle information',
           color: 'nord-purple',
           hasInputs: true,
           hasOutputs: true,
@@ -241,8 +317,7 @@ export class AppComponent implements OnInit {
         {
           type: 'iot-event-from-stream',
           label: 'IoT Event From Stream',
-          description:
-            'Create IoT events from stream point data with case context',
+          description: 'Create IoT events from stream point data with case context',
           color: 'nord-green',
           hasInputs: true,
           hasOutputs: true,
@@ -258,75 +333,8 @@ export class AppComponent implements OnInit {
       ],
     },
     {
-      title: 'Generic XML Processing',
-      nodes: [
-        {
-          type: 'xml-element-selector',
-          label: 'XML Element Selector',
-          description:
-            'Select specific elements from XML structure using XPath',
-          color: 'nord-red',
-          hasInputs: true,
-          hasOutputs: true,
-        },
-        {
-          type: 'xml-attribute-extractor',
-          label: 'XML Attribute Extractor',
-          description: 'Extract attributes from XML elements',
-          color: 'nord-yellow',
-          hasInputs: true,
-          hasOutputs: true,
-        },
-        {
-          type: 'nested-list-processor',
-          label: 'Nested List Processor',
-          description: 'Process nested list structures from XML',
-          color: 'nord-red',
-          hasInputs: true,
-          hasOutputs: true,
-        },
-      ],
-    },
-    {
-      title: 'Stream Processing',
-      nodes: [
-        {
-          type: 'lifecycle-calculator',
-          label: 'Lifecycle Calculator',
-          description: 'Calculate lifecycle start/end times from stream data',
-          color: 'nord-yellow',
-          hasInputs: true,
-          hasOutputs: true,
-        },
-        {
-          type: 'stream-aggregator',
-          label: 'Stream Aggregator',
-          description: 'Aggregate stream data by time windows or event groups',
-          color: 'nord-red',
-          hasInputs: true,
-          hasOutputs: true,
-        },
-        {
-          type: 'stream-event-creator',
-          label: 'Stream Event Creator',
-          description:
-            'Create events from individual stream measurement points',
-          color: 'nord-green',
-          hasInputs: true,
-          hasOutputs: true,
-        },
-        {
-          type: 'stream-metadata-extractor',
-          label: 'Stream Metadata Extractor',
-          description: 'Extract metadata from stream measurement points',
-          color: 'nord-yellow',
-          hasInputs: true,
-          hasOutputs: true,
-        },
-      ],
-    },
-    {
       title: 'Data Processing',
+      collapsed: true,
       nodes: [
         {
           type: 'column-selector',
@@ -371,7 +379,8 @@ export class AppComponent implements OnInit {
       ],
     },
     {
-      title: 'CORE Model Nodes',
+      title: 'CORE Model',
+      collapsed: true,
       nodes: [
         {
           type: 'iot-event',
@@ -398,70 +407,6 @@ export class AppComponent implements OnInit {
           hasOutputs: true,
         },
         {
-          type: 'dynamic-object-creator',
-          label: 'Dynamic Object Creator',
-          description: 'Create objects dynamically from attribute data',
-          color: 'nord-purple',
-          hasInputs: true,
-          hasOutputs: true,
-        },
-      ],
-    },
-    {
-      title: 'Utilities',
-      nodes: [
-        {
-          type: 'unique-id-generator',
-          label: 'Unique ID Generator',
-          description: 'Generate unique identifiers',
-          color: 'nord-yellow',
-          hasInputs: false,
-          hasOutputs: true,
-        },
-        {
-          type: 'object-class-selector',
-          label: 'Object Class Selector',
-          description: 'Select object class for CORE model',
-          color: 'nord-yellow',
-          hasInputs: false,
-          hasOutputs: true,
-        },
-      ],
-    },
-    {
-      title: 'Relationships',
-      nodes: [
-        {
-          type: 'event-object-relation',
-          label: 'Event-Object Relation',
-          description: 'Create relationships between events and objects',
-          color: 'nord-orange',
-          hasInputs: true,
-          hasOutputs: true,
-        },
-        {
-          type: 'event-event-relation',
-          label: 'Event-Event Relation',
-          description: 'Create derivation relationships between events',
-          color: 'nord-orange',
-          hasInputs: true,
-          hasOutputs: true,
-        },
-        {
-          type: 'context-based-linker',
-          label: 'Context-Based Linker',
-          description:
-            'Create relationships based on shared context attributes',
-          color: 'nord-orange',
-          hasInputs: true,
-          hasOutputs: true,
-        },
-      ],
-    },
-    {
-      title: 'CORE Model Construction',
-      nodes: [
-        {
           type: 'core-metamodel',
           label: 'CORE Metamodel',
           description: 'Construct the final CORE metamodel',
@@ -473,6 +418,7 @@ export class AppComponent implements OnInit {
     },
     {
       title: 'Output & Export',
+      collapsed: true,
       nodes: [
         {
           type: 'table-output',
@@ -523,6 +469,13 @@ export class AppComponent implements OnInit {
   }
 
   /**
+   * Set the active tab in the sidebar.
+   */
+  setActiveTab(tab: 'nodes' | 'tools' | 'status'): void {
+    this.activeTab = tab;
+  }
+
+  /**
    * Update connection status display.
    */
   private updateConnectionStatus(isConnected: boolean): void {
@@ -545,6 +498,14 @@ export class AppComponent implements OnInit {
   }
 
   /**
+   * Check if there's content in the pipeline.
+   */
+  hasContent(): boolean {
+    const stats = this.getPipelineStats();
+    return stats.nodes > 0 || stats.connections > 0;
+  }
+
+  /**
    * Called when user starts dragging a library node.
    */
   onDragStart(event: DragEvent, nodeType: string): void {
@@ -563,17 +524,9 @@ export class AppComponent implements OnInit {
   onDrop(event: DragEvent): void {
     event.preventDefault();
     const nodeType = event.dataTransfer?.getData('text/plain');
-    console.log('Dropped node type:', nodeType);
 
     if (nodeType) {
       const canvasPosition = this.transformDropCoordinates(event);
-
-      console.log('Screen coordinates:', {
-        x: event.clientX,
-        y: event.clientY,
-      });
-      console.log('Canvas coordinates:', canvasPosition);
-
       this.nodeService.addNode(nodeType, canvasPosition);
     }
   }
@@ -602,43 +555,18 @@ export class AppComponent implements OnInit {
   }
 
   /**
-   * Manual coordinate transform fallback used only if the component helper fails.
+   * Manual coordinate transform fallback.
    */
-  private manualCoordinateTransform(event: DragEvent): {
-    x: number;
-    y: number;
-  } {
+  private manualCoordinateTransform(event: DragEvent): { x: number; y: number } {
     try {
       const root = (event.currentTarget as HTMLElement) || document.body;
       const canvasHost = root.querySelector('f-canvas') as HTMLElement | null;
       if (!canvasHost) return { x: event.offsetX || 0, y: event.offsetY || 0 };
 
-      // Find deepest transformed descendant
-      const all = Array.from(canvasHost.querySelectorAll<HTMLElement>('*'));
-      all.push(canvasHost);
-      let layer: HTMLElement = canvasHost;
-      for (const el of all) {
-        const t = getComputedStyle(el).transform;
-        if (t && t !== 'none') layer = el;
-      }
-
-      const rect = layer.getBoundingClientRect();
-      const m = getComputedStyle(layer).transform;
-      const mm = m.match(/matrix\(([-0-9., e]+)\)/);
-      if (!mm)
-        return { x: event.clientX - rect.left, y: event.clientY - rect.top };
-
-      const [a, , , d, e, f] = mm[1].split(',').map((v) => Number(v.trim()));
-      const localX = event.clientX - rect.left;
-      const localY = event.clientY - rect.top;
-
+      const rect = canvasHost.getBoundingClientRect();
       return {
-        x:
-          (localX - (Number.isFinite(e) ? e : 0)) /
-          (Number.isFinite(a) && a !== 0 ? a : 1),
-        y:
-          (localY - (Number.isFinite(f) ? f : 0)) /
-          (Number.isFinite(d) && d !== 0 ? d : 1),
+        x: event.clientX - rect.left,
+        y: event.clientY - rect.top,
       };
     } catch {
       return { x: event.offsetX || 0, y: event.offsetY || 0 };
@@ -655,130 +583,45 @@ export class AppComponent implements OnInit {
   }
 
   /**
-   * Execute pipeline with proper OCPM node handling and debugging.
+   * Execute pipeline.
    */
   executePipeline(): void {
     if (!this.canExecutePipeline()) {
-      this.snackBar.open(
-        'Pipeline cannot be executed. Please add nodes and connections.',
-        'Close',
-        {
-          duration: 5000,
-        }
-      );
+      this.snackBar.open('Pipeline cannot be executed. Please add nodes and connections.', 'Close', {
+        duration: 5000,
+      });
       return;
     }
 
-    // Clear previous errors
     this.nodeService.clearAllErrors();
-
-
-    const ocpmNodes = this.nodeService
-      .getAllNodes()
-      .filter((node) => node.type === 'ocpm-discovery');
-    console.log(
-      'Found OCPM nodes for loading state:',
-      ocpmNodes.length,
-      ocpmNodes.map((n) => n.id)
-    );
-
-    // Set loading state for OCPM Discovery nodes
-    ocpmNodes.forEach((node) => {
-      console.log(`Setting loading state for OCPM node: ${node.id}`);
-      this.nodeService.updateNodeConfig(node.id, {
-        imageLoading: true,
-        processImageUrl: null,
-        imageLoadError: false,
-        imageErrorMessage: null,
-      });
-    });
-
     this.updateExecutionStatus('running', '⏳', 'Executing pipeline...');
 
     const nodes = this.nodeService.getAllNodes();
     const connections = this.mappingService.connectionObserver$.getValue();
-    const pipeline = this.apiService.createPipelineDefinition(
-      nodes,
-      connections
-    );
-
-    console.log('Executing pipeline:', pipeline);
+    const pipeline = this.apiService.createPipelineDefinition(nodes, connections);
 
     this.apiService.executePipeline(pipeline).subscribe({
       next: (result) => {
-        console.log('Pipeline execution completed:', result);
         this.lastExecutionResult = result;
 
         if (result.success) {
-          this.updateExecutionStatus(
-            'success',
-            '✅',
-            'Pipeline executed successfully'
-          );
-
-          this.nodeEditorRef.addProcessImage(result.results?.process_discovery || '');
-
-          // Check for any failed nodes in the logs
-          const failedNodes = this.nodeService.highlightErrorNodes(
-            result.logs || []
-          );
-
+          this.updateExecutionStatus('success', '✅', 'Pipeline executed successfully');
+          const failedNodes = this.nodeService.highlightErrorNodes(result.logs || []);
           if (failedNodes.length > 0) {
-            this.updateExecutionStatus(
-              'partial',
-              '⚠️',
-              `Completed with ${failedNodes.length} node(s) failed`
-            );
+            this.updateExecutionStatus('partial', '⚠️', `Completed with ${failedNodes.length} node(s) failed`);
           }
         } else {
-          this.updateExecutionStatus(
-            'failed',
-            '❌',
-            'Pipeline execution failed'
-          );
-
-          // Clear loading state for OCPM nodes on failure
-          ocpmNodes.forEach((node) => {
-            this.nodeService.updateNodeConfig(node.id, {
-              imageLoading: false,
-              imageLoadError: true,
-              imageErrorMessage: 'Pipeline execution failed',
-            });
-          });
-
-          // Highlight failed nodes
+          this.updateExecutionStatus('failed', '❌', 'Pipeline execution failed');
           this.nodeService.highlightErrorNodes(result.logs || []);
         }
 
-        // Always show the log dialog
-        this.showLogDialog(result);
-
-        // Handle execution results
+        // this.showLogDialog(result);
         if (result.results) {
-          console.log('Pipeline results:', result.results);
           this.showResults(result.results);
         }
       },
       error: (error) => {
         console.error('Pipeline execution failed:', error);
-
-        // Clear loading state for OCPM nodes on error
-        ocpmNodes.forEach((node) => {
-          this.nodeService.updateNodeConfig(node.id, {
-            imageLoading: false,
-            imageLoadError: true,
-            imageErrorMessage: 'Pipeline execution failed',
-          });
-        });
-
-        this.lastExecutionResult = {
-          success: false,
-          executionId: 'error',
-          logs: [`Pipeline execution error: ${error}`],
-          errors: [error],
-          results: [],
-        };
-
         this.updateExecutionStatus('failed', '❌', 'Execution failed');
         this.snackBar.open(`Pipeline execution failed: ${error}`, 'Close', {
           duration: 8000,
@@ -788,115 +631,73 @@ export class AppComponent implements OnInit {
   }
 
   /**
-   * Enhanced showResults with debugging and proper UI updates.
+   * Validate pipeline.
+   */
+  validatePipeline(): void {
+    const nodes = this.nodeService.getAllNodes();
+    const connections = this.mappingService.connectionObserver$.getValue();
+    const pipeline = this.apiService.createPipelineDefinition(nodes, connections);
+
+    this.apiService.validatePipeline(pipeline).subscribe({
+      next: (result) => {
+        if (result.isValid) {
+          this.snackBar.open('Pipeline is valid and ready for execution!', 'Close', {
+            duration: 3000,
+          });
+        } else {
+          const errorMessage = 'Pipeline validation failed:\n' +
+            result.errors.join('\n') +
+            (result.warnings.length > 0 ? '\n\nWarnings:\n' + result.warnings.join('\n') : '');
+
+          this.snackBar.open('Pipeline validation failed - see console for details', 'Close', {
+            duration: 5000,
+          });
+          console.error(errorMessage);
+        }
+      },
+      error: (error) => {
+        this.snackBar.open(`Pipeline validation failed: ${error}`, 'Close', {
+          duration: 5000,
+        });
+      },
+    });
+  }
+
+  /**
+   * Show execution results.
    */
   private showResults(results: any): void {
     console.log('Execution results:', results);
 
-    // Handle process discovery image URL
     if (results.process_discovery) {
-      console.log(
-        'Process discovery image available:',
-        results.process_discovery
-      );
+      const ocpmNodes = this.nodeService.getAllNodes().filter(node => node.type === 'ocpm-discovery');
 
-      // Find the OCPM Discovery nodes
-      const ocpmNodes = this.nodeService
-        .getAllNodes()
-        .filter((node) => node.type === 'ocpm-discovery');
-      console.log(
-        'Found OCPM nodes for image update:',
-        ocpmNodes.length,
-        ocpmNodes.map((n) => n.id)
-      );
-
-      if (ocpmNodes.length === 0) {
-        console.warn('No OCPM Discovery nodes found to display the image!');
-        this.snackBar.open(
-          'Process model generated but no OCPM Discovery node found to display it',
-          'Close',
-          {
-            duration: 5000,
-          }
-        );
-        return;
-      }
-
-      ocpmNodes.forEach((node) => {
-        console.log(
-          `Updating OCPM node ${node.id} with image URL: ${results.process_discovery}`
-        );
-
-        // Update node configuration with image data
+      ocpmNodes.forEach(node => {
         this.nodeService.updateNodeConfig(node.id, {
           processImageUrl: results.process_discovery,
           generatedAt: new Date().toISOString(),
           imageLoading: false,
           imageLoadError: false,
         });
-
-        // Verify the update took effect
-        setTimeout(() => {
-          const updatedNode = this.nodeService.getNodeById(node.id);
-          console.log(
-            'Updated node config after image URL set:',
-            updatedNode?.config
-          );
-        }, 100);
       });
 
-      this.snackBar.open(
-        'Process model generated and displayed in OCPM Discovery node',
-        'View Node',
-        {
-          duration: 5000,
-        }
-      );
-    }
-
-    // Handle discovery statistics if available
-    if (results.discovery_stats) {
-      console.log('Discovery statistics:', results.discovery_stats);
-
-      // Update OCPM nodes with statistics
-      const ocpmNodes = this.nodeService
-        .getAllNodes()
-        .filter((node) => node.type === 'ocpm-discovery');
-
-      ocpmNodes.forEach((node) => {
-        this.nodeService.updateNodeConfig(node.id, {
-          discoveryStats: results.discovery_stats,
-        });
-      });
-    }
-
-    // Rest of existing showResults logic...
-    if (results.core_model) {
-      console.log('CORE Model created with:', results.core_components);
-      this.snackBar.open('CORE Model successfully created', 'View Details', {
+      this.snackBar.open('Process model generated and displayed in OCPM Discovery node', 'View Node', {
         duration: 5000,
       });
     }
 
-    if (results.extended_table) {
-      console.log('Extended table has', results.extended_table.length, 'rows');
-      this.snackBar.open(
-        `Extended table created with ${results.extended_table.length} rows`,
-        'Close',
-        {
-          duration: 3000,
-        }
-      );
+    if (results.core_model) {
+      this.snackBar.open('CORE Model successfully created', 'View Details', {
+        duration: 5000,
+      });
     }
   }
 
   /**
-   * Show the log dialog with execution results.
+   * Show log dialog.
    */
   private showLogDialog(executionResult: any): void {
-    const failedNodes = this.nodeService.highlightErrorNodes(
-      executionResult.logs || []
-    );
+    const failedNodes = this.nodeService.highlightErrorNodes(executionResult.logs || []);
 
     const dialogData: LogDialogData = {
       executionId: executionResult.executionId || 'unknown',
@@ -915,14 +716,10 @@ export class AppComponent implements OnInit {
       disableClose: false,
       autoFocus: true,
     });
-
-    dialogRef.afterClosed().subscribe(() => {
-      console.log('Log dialog closed');
-    });
   }
 
   /**
-   * Show logs from the last execution.
+   * Show logs from last execution.
    */
   showLastExecutionLogs(): void {
     if (this.lastExecutionResult) {
@@ -931,63 +728,12 @@ export class AppComponent implements OnInit {
   }
 
   /**
-   * Update execution status display.
+   * Update execution status.
    */
-  private updateExecutionStatus(
-    status: string,
-    icon: string,
-    text: string
-  ): void {
+  private updateExecutionStatus(status: string, icon: string, text: string): void {
     this.lastExecutionStatus = status;
     this.executionStatusIcon = icon;
     this.executionStatusText = text;
-  }
-
-  /**
-   * Validate the current pipeline.
-   */
-  validatePipeline(): void {
-    const nodes = this.nodeService.getAllNodes();
-    const connections = this.mappingService.connectionObserver$.getValue();
-    const pipeline = this.apiService.createPipelineDefinition(
-      nodes,
-      connections
-    );
-
-    this.apiService.validatePipeline(pipeline).subscribe({
-      next: (result) => {
-        if (result.isValid) {
-          this.snackBar.open(
-            'Pipeline is valid and ready for execution!',
-            'Close',
-            {
-              duration: 3000,
-            }
-          );
-        } else {
-          const errorMessage =
-            'Pipeline validation failed:\n' +
-            result.errors.join('\n') +
-            (result.warnings.length > 0
-              ? '\n\nWarnings:\n' + result.warnings.join('\n')
-              : '');
-
-          this.snackBar.open(
-            'Pipeline validation failed - see console for details',
-            'Close',
-            {
-              duration: 5000,
-            }
-          );
-          console.error(errorMessage);
-        }
-      },
-      error: (error) => {
-        this.snackBar.open(`Pipeline validation failed: ${error}`, 'Close', {
-          duration: 5000,
-        });
-      },
-    });
   }
 
   /**
@@ -1000,26 +746,15 @@ export class AppComponent implements OnInit {
     return {
       nodes: nodes.length,
       connections: connections.length,
-      dataSources: nodes.filter((n) =>
-        ['read-file', 'mqtt-connector'].includes(n.type)
-      ).length,
-      processing: nodes.filter((n) =>
-        [
-          'column-selector',
-          'attribute-selector',
-          'data-filter',
-          'data-mapper',
-        ].includes(n.type)
-      ).length,
-      outputs: nodes.filter((n) =>
-        ['table-output', 'export-ocel', 'ocpm-discovery'].includes(n.type)
-      ).length,
+      dataSources: nodes.filter(n => ['read-file', 'mqtt-connector'].includes(n.type)).length,
+      processing: nodes.filter(n => ['column-selector', 'attribute-selector', 'data-filter', 'data-mapper'].includes(n.type)).length,
+      outputs: nodes.filter(n => ['table-output', 'export-ocel', 'ocpm-discovery'].includes(n.type)).length,
       errors: this.nodeService.getErrorNodes().length,
     };
   }
 
   /**
-   * Clear the entire pipeline.
+   * Clear pipeline.
    */
   clearPipeline(): void {
     if (confirm('Are you sure you want to clear the entire pipeline?')) {
@@ -1031,15 +766,12 @@ export class AppComponent implements OnInit {
   }
 
   /**
-   * Export pipeline definition.
+   * Export pipeline.
    */
   exportPipeline(): void {
     const nodes = this.nodeService.getAllNodes();
     const connections = this.mappingService.connectionObserver$.getValue();
-    const pipeline = this.apiService.createPipelineDefinition(
-      nodes,
-      connections
-    );
+    const pipeline = this.apiService.createPipelineDefinition(nodes, connections);
 
     const jsonString = JSON.stringify(pipeline, null, 2);
     const blob = new Blob([jsonString], { type: 'application/json' });
@@ -1047,9 +779,55 @@ export class AppComponent implements OnInit {
   }
 
   /**
-   * Test backend connection.
+   * Test connection.
    */
   testConnection(): void {
     this.apiService.checkConnection();
+  }
+
+  /**
+   * Upload dataset.
+   */
+  uploadDataset(): void {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.csv,.json,.xml,.yaml,.yml';
+
+    input.onchange = (event) => {
+      const file = (event.target as HTMLInputElement).files?.[0];
+      if (file) {
+        // Handle file upload logic here
+        this.snackBar.open(`Selected file: ${file.name}`, 'Close', { duration: 3000 });
+      }
+    };
+
+    input.click();
+  }
+
+  /**
+   * Load pipeline.
+   */
+  loadPipeline(): void {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+
+    input.onchange = (event) => {
+      const file = (event.target as HTMLInputElement).files?.[0];
+      if (file) {
+        // Handle pipeline loading logic here
+        this.snackBar.open(`Loading pipeline: ${file.name}`, 'Close', { duration: 3000 });
+      }
+    };
+
+    input.click();
+  }
+
+  /**
+   * Load example pipeline.
+   */
+  loadExamplePipeline(): void {
+    // Load example pipeline logic
+    this.snackBar.open('Loading example pipeline...', 'Close', { duration: 3000 });
   }
 }

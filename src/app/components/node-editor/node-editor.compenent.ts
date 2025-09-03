@@ -303,7 +303,17 @@ interface NodeStatus {
                     🗑️ Delete
                   </button>
                 </div>
-              }
+                }
+                 @if (node.content.displayOnly) {
+                <div class="node-actions">
+                  <button
+                    class="action-button delete-button"
+                    (click)="deleteNode(node.id)"
+                    title="Delete this node">
+                    🗑️ Delete
+                  </button>
+                </div>
+                 }
             </div>
 
             <!-- Output ports -->

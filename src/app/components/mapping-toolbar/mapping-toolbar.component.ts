@@ -1,5 +1,3 @@
-// src/app/components/mapping-toolbar/mapping-toolbar.component.ts - Updated with OCPM image handling
-
 import { Component, ElementRef, ViewChild, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -15,20 +13,13 @@ import { CAIROTemplateService } from '../../services/cairo-template.service';
   imports: [CommonModule, FormsModule],
   template: `
     <div class="mapping-toolbar">
-      <div class="toolbar-section">
-        <div
-          class="section-header"
-          (click)="togglePipelineOperations()"
-          [class.collapsed]="pipelineOperationsCollapsed">
-          <span class="section-icon">{{ pipelineOperationsCollapsed ? '▶' : '▼' }}</span>
-          <h3>Pipeline Operations</h3>
-        </div>
-
-        <div class="section-content" *ngIf="!pipelineOperationsCollapsed">
-          <!-- Execute and Validate buttons - priority actions -->
+      <!-- Priority Pipeline Operations -->
+      <!-- <div class="toolbar-section">
+        <h4>⚡ Pipeline Operations</h4>
+        <div class="section-content">
           <div class="priority-actions">
             <button
-              class="toolbar-button execute-button"
+              class="execute-button"
               (click)="executePipeline()"
               [disabled]="!canExecutePipeline()"
               title="Execute the current pipeline">
@@ -36,24 +27,30 @@ import { CAIROTemplateService } from '../../services/cairo-template.service';
               Execute Pipeline
             </button>
             <button
-              class="toolbar-button validate-button"
+              class="validate-button"
               (click)="validatePipeline()"
               title="Validate pipeline connections">
               <span class="button-icon">✓</span>
               Validate
             </button>
+          </div>
+          <div class="single-column">
             <button
               class="toolbar-button"
               (click)="loadExamplePipeline()"
               title="Load example pipeline">
               <span class="button-icon">📋</span>
-              Load Example
+              Load Example Pipeline
             </button>
           </div>
+        </div>
+      </div> -->
 
-          <!-- File operations -->
-          <div class="button-group">
-            <!-- Dataset Upload -->
+      <!-- File Operations -->
+      <div class="toolbar-section">
+        <h4>📁 File Operations</h4>
+        <div class="section-content">
+          <div class="button-grid">
             <button
               class="toolbar-button upload-button"
               (click)="triggerDatasetInput()"
@@ -61,8 +58,6 @@ import { CAIROTemplateService } from '../../services/cairo-template.service';
               <span class="button-icon">📂</span>
               Upload Dataset
             </button>
-
-            <!-- Save Pipeline -->
             <button
               class="toolbar-button save-button"
               (click)="openSaveDialog()"
@@ -71,8 +66,6 @@ import { CAIROTemplateService } from '../../services/cairo-template.service';
               <span class="button-icon">💾</span>
               Save Pipeline
             </button>
-
-            <!-- Load Pipeline -->
             <button
               class="toolbar-button load-button"
               (click)="triggerPipelineInput()"
@@ -80,8 +73,6 @@ import { CAIROTemplateService } from '../../services/cairo-template.service';
               <span class="button-icon">📁</span>
               Load Pipeline
             </button>
-
-            <!-- Clear Pipeline -->
             <button
               class="toolbar-button clear-button"
               (click)="clearPipeline()"
@@ -91,45 +82,107 @@ import { CAIROTemplateService } from '../../services/cairo-template.service';
               Clear Pipeline
             </button>
           </div>
+        </div>
+      </div>
 
-          <!-- Pipeline Statistics -->
-          <div class="toolbar-section" *ngIf="hasContent()">
-            <h3>Pipeline Statistics</h3>
-            <div class="stats-grid">
-              <div class="stat-item">
-                <span class="stat-label">Nodes:</span>
-                <span class="stat-value">{{ pipelineStats.nodes }}</span>
-              </div>
-              <div class="stat-item">
-                <span class="stat-label">Connections:</span>
-                <span class="stat-value">{{ pipelineStats.connections }}</span>
-              </div>
-              <div class="stat-item">
-                <span class="stat-label">Data Sources:</span>
-                <span class="stat-value">{{ pipelineStats.dataSources }}</span>
-              </div>
-              <div class="stat-item">
-                <span class="stat-label">Outputs:</span>
-                <span class="stat-value">{{ pipelineStats.outputs }}</span>
-              </div>
+      <!-- Pipeline Statistics -->
+      <!-- <div class="toolbar-section" *ngIf="hasContent()">
+        <h4>📊 Pipeline Statistics</h4>
+        <div class="section-content">
+          <div class="stats-grid">
+            <div class="stat-item">
+              <span class="stat-label">Nodes:</span>
+              <span class="stat-value">{{ pipelineStats.nodes }}</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Connections:</span>
+              <span class="stat-value">{{ pipelineStats.connections }}</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Data Sources:</span>
+              <span class="stat-value">{{ pipelineStats.dataSources }}</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Processing:</span>
+              <span class="stat-value">{{ pipelineStats.processing }}</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Outputs:</span>
+              <span class="stat-value">{{ pipelineStats.outputs }}</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Errors:</span>
+              <span class="stat-value">{{ getErrorCount() }}</span>
             </div>
           </div>
+        </div>
+      </div> -->
 
-          <!-- Server Connection Status -->
-          <div class="toolbar-section">
-            <h3>Server Status</h3>
-            <div class="server-status">
-              <div class="status-indicator" [class]="serverStatus.type">
-                <span class="status-dot"></span>
-                <span class="status-text">{{ serverStatus.message }}</span>
-              </div>
-              <button
-                class="toolbar-button test-connection-button"
-                (click)="testServerConnection()"
-                [disabled]="isTestingConnection">
-                <span class="button-icon">🔌</span>
-                {{ isTestingConnection ? 'Testing...' : 'Test Connection' }}
-              </button>
+      <!-- Execution Status -->
+      <!-- <div class="toolbar-section">
+        <h4>🚀 Execution Status</h4>
+        <div class="section-content">
+          <div class="execution-status" [class]="getExecutionStatusClass()">
+            <div class="status-indicator">
+              <span class="status-icon">{{ getExecutionStatusIcon() }}</span>
+              <span class="status-text">{{ getExecutionStatusText() }}</span>
+            </div>
+            <button
+              *ngIf="hasExecutionResult()"
+              class="toolbar-button view-logs-btn"
+              (click)="showLastExecutionLogs()"
+              title="View execution logs">
+              <span class="button-icon">📋</span>
+              View Execution Logs
+            </button>
+          </div>
+        </div>
+      </div> -->
+
+      <!-- Server Connection Status -->
+      <div class="toolbar-section">
+        <h4>🔗 Server Status</h4>
+        <div class="section-content">
+          <div class="server-status">
+            <div class="status-indicator" [class]="serverStatus.type">
+              <span class="status-dot"></span>
+              <span class="status-text">{{ serverStatus.message }}</span>
+            </div>
+            <button
+              class="toolbar-button test-connection-button"
+              (click)="testServerConnection()"
+              [disabled]="isTestingConnection">
+              <span class="button-icon">🔌</span>
+              {{ isTestingConnection ? 'Testing...' : 'Test Connection' }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pipeline Validation Status -->
+      <div class="toolbar-section" *ngIf="hasContent()">
+        <h4>✓ Validation Status</h4>
+        <div class="section-content">
+          <div class="validation-status">
+            <div class="validation-item" [class]="validationResult.isValid ? 'valid' : 'invalid'">
+              <span class="validation-icon">{{ validationResult.isValid ? '✓' : '✗' }}</span>
+              <span class="validation-text">
+                {{ validationResult.isValid ? 'Pipeline is valid' : 'Pipeline has errors' }}
+              </span>
+            </div>
+
+            <div class="validation-errors" *ngIf="validationResult.errors.length > 0">
+              <h6>Errors:</h6>
+              <ul>
+                <li *ngFor="let error of validationResult.errors">{{ error }}</li>
+              </ul>
+            </div>
+
+            <div class="validation-warnings" *ngIf="validationResult.warnings.length > 0">
+              <h6>Warnings:</h6>
+              <ul>
+                <li *ngFor="let warning of validationResult.warnings">{{ warning }}</li>
+              </ul>
             </div>
           </div>
         </div>
@@ -139,7 +192,7 @@ import { CAIROTemplateService } from '../../services/cairo-template.service';
       <input
         #datasetInput
         type="file"
-        accept=".csv,.json,.xml,.yaml,.yml,.xes,.xes"
+        accept=".csv,.json,.xml,.yaml,.yml,.xes"
         (change)="onDatasetSelected($event)"
         style="display: none;">
 
@@ -153,7 +206,7 @@ import { CAIROTemplateService } from '../../services/cairo-template.service';
       <!-- Save Pipeline Dialog -->
       <div class="dialog-overlay" *ngIf="showSaveDialog" (click)="closeSaveDialog()">
         <div class="dialog-content" (click)="$event.stopPropagation()">
-          <h4>Save Pipeline Definition</h4>
+          <h4>💾 Save Pipeline Definition</h4>
           <div class="form-group">
             <label for="pipelineName">Pipeline Name *</label>
             <input
@@ -187,7 +240,7 @@ import { CAIROTemplateService } from '../../services/cairo-template.service';
 
           <!-- Pipeline Summary -->
           <div class="pipeline-summary">
-            <h5>Pipeline Summary</h5>
+            <h5>📊 Pipeline Summary</h5>
             <div class="summary-grid">
               <div class="summary-item">
                 <span class="summary-label">Total Nodes:</span>
@@ -207,7 +260,7 @@ import { CAIROTemplateService } from '../../services/cairo-template.service';
               </div>
             </div>
 
-            <!-- Validation Status -->
+            <!-- Validation Status in Dialog -->
             <div class="validation-status">
               <div class="validation-item" [class]="validationResult.isValid ? 'valid' : 'invalid'">
                 <span class="validation-icon">{{ validationResult.isValid ? '✓' : '✗' }}</span>
@@ -216,7 +269,6 @@ import { CAIROTemplateService } from '../../services/cairo-template.service';
                 </span>
               </div>
 
-              <!-- Show errors if any -->
               <div class="validation-errors" *ngIf="validationResult.errors.length > 0">
                 <h6>Errors:</h6>
                 <ul>
@@ -224,7 +276,6 @@ import { CAIROTemplateService } from '../../services/cairo-template.service';
                 </ul>
               </div>
 
-              <!-- Show warnings if any -->
               <div class="validation-warnings" *ngIf="validationResult.warnings.length > 0">
                 <h6>Warnings:</h6>
                 <ul>
@@ -243,7 +294,7 @@ import { CAIROTemplateService } from '../../services/cairo-template.service';
             <button
               class="dialog-button save-button"
               (click)="savePipeline()"
-              [disabled]="false">
+              [disabled]="!saveForm.name.trim()">
               Save & Download
             </button>
           </div>
@@ -266,7 +317,6 @@ export class MappingToolbarComponent {
   statusMessage = '';
   statusType = '';
   isTestingConnection = false;
-  pipelineOperationsCollapsed = false;
 
   saveForm = {
     name: '',
@@ -300,7 +350,7 @@ export class MappingToolbarComponent {
     private pipelineService: PipelineService,
     private apiService: ApiService,
     private cairoTemplateService: CAIROTemplateService,
-    private cdr: ChangeDetectorRef  // Add ChangeDetectorRef
+    private cdr: ChangeDetectorRef
   ) {
     this.updateStats();
 
@@ -323,25 +373,6 @@ export class MappingToolbarComponent {
   }
 
   /**
-   * Toggle the Pipeline Operations section.
-   */
-  togglePipelineOperations(): void {
-    this.pipelineOperationsCollapsed = !this.pipelineOperationsCollapsed;
-  }
-
-  downloadURI(uri: any, name: any) {
-    var link = document.createElement("a");
-    link.download = name;
-    link.href = uri;
-    link.target = "_blank";
-    link.rel = "noopener noreferrer"
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    link.remove();
-  }
-
-  /**
    * Check if pipeline can be executed (has nodes and connections).
    */
   canExecutePipeline(): boolean {
@@ -352,7 +383,6 @@ export class MappingToolbarComponent {
 
   /**
    * Execute the current pipeline with OCPM image display support.
-   * UPDATED: Now handles process discovery images properly.
    */
   executePipeline(): void {
     try {
@@ -386,7 +416,7 @@ export class MappingToolbarComponent {
           if (result.success) {
             this.showStatus('Pipeline executed successfully!', 'success');
 
-            // Handle execution results - UPDATED with image support
+            // Handle execution results
             if (result.results) {
               console.log('Pipeline results:', result.results);
               this.handleExecutionResults(result.results);
@@ -437,7 +467,6 @@ export class MappingToolbarComponent {
 
   /**
    * Handle execution results with OCPM image display support.
-   * NEW METHOD: Processes results and updates OCPM Discovery nodes.
    */
   private handleExecutionResults(results: any): void {
     console.log('Handling execution results:', results);
@@ -466,12 +495,6 @@ export class MappingToolbarComponent {
           imageLoading: false,
           imageLoadError: false
         });
-
-        // Verify the update took effect
-        setTimeout(() => {
-          const updatedNode = this.nodeService.getNodeById(node.id);
-          console.log('Updated node config after image URL set:', updatedNode?.config);
-        }, 100);
       });
 
       this.showStatus('Process model generated and displayed in OCPM Discovery node', 'success');
@@ -523,10 +546,11 @@ export class MappingToolbarComponent {
           const errorMessage = 'Pipeline validation failed:\n' +
             result.errors.join('\n') +
             (result.warnings.length > 0 ? '\n\nWarnings:\n' + result.warnings.join('\n') : '');
-          this.showStatus(errorMessage, 'error');
+          this.showStatus('Pipeline validation failed - check validation section for details', 'error');
+          console.error(errorMessage);
         }
 
-        // Update validation result for use in save dialog
+        // Update validation result for display
         this.validationResult = result;
       },
       error: (error) => {
@@ -546,6 +570,43 @@ export class MappingToolbarComponent {
    */
   hasContent(): boolean {
     return this.pipelineStats.nodes > 0 || this.pipelineStats.connections > 0;
+  }
+
+  /**
+   * Get error count from node service.
+   */
+  getErrorCount(): number {
+    try {
+      return this.nodeService.getErrorNodes().length;
+    } catch {
+      return 0;
+    }
+  }
+
+  /**
+   * Get execution status from parent component or node service.
+   */
+  getExecutionStatusClass(): string {
+    // This would typically come from a shared service or parent component
+    return 'idle';
+  }
+
+  getExecutionStatusIcon(): string {
+    return '⚪';
+  }
+
+  getExecutionStatusText(): string {
+    return 'Ready';
+  }
+
+  hasExecutionResult(): boolean {
+    // This would check if there are execution results available
+    return false;
+  }
+
+  showLastExecutionLogs(): void {
+    // This would show the execution logs
+    console.log('Show execution logs');
   }
 
   /**
@@ -571,10 +632,13 @@ export class MappingToolbarComponent {
           this.validationResult = result;
         },
         error: () => {
-          // Fallback to local validation if API fails
-          const resTemp: any = (this.pipelineService.validatePipeline() as any);
-          resTemp.validatedAt = new Date().toISOString();
-          this.validationResult = resTemp;
+          // Fallback validation
+          this.validationResult = {
+            isValid: connections.length > 0,
+            errors: connections.length === 0 ? ['Pipeline must have connections between nodes'] : [],
+            warnings: [],
+            validatedAt: new Date().toISOString()
+          };
         }
       });
     } else {
@@ -795,6 +859,14 @@ export class MappingToolbarComponent {
   }
 
   /**
+   * Load example pipeline.
+   */
+  loadExamplePipeline(): void {
+    this.cairoTemplateService.loadTemplate('cairo-basic');
+    this.showStatus('Loading example pipeline...', 'info');
+  }
+
+  /**
    * Show a status message.
    */
   private showStatus(message: string, type: string): void {
@@ -813,61 +885,5 @@ export class MappingToolbarComponent {
   private clearStatus(): void {
     this.statusMessage = '';
     this.statusType = '';
-  }
-
-  /**
-   * Load example pipeline.
-   */
-  loadExamplePipeline(): void {
-    this.cairoTemplateService.loadTemplate('cairo-basic');
-  }
-
-  /**
-   * Debug method to test OCPM node image display manually.
-   */
-  debugTestImageDisplay(): void {
-    const ocpmNodes = this.nodeService.getAllNodes().filter(node => node.type === 'ocpm-discovery');
-    console.log('Debug: Found OCPM nodes:', ocpmNodes.length);
-
-    if (ocpmNodes.length === 0) {
-      this.showStatus('No OCPM Discovery nodes found. Add one to test image display.', 'error');
-      return;
-    }
-
-    const testNode = ocpmNodes[0];
-    console.log('Debug: Testing image display on node:', testNode.id);
-
-    // Test loading state
-    this.nodeService.updateNodeConfig(testNode.id, {
-      imageLoading: true,
-      processImageUrl: null,
-      imageLoadError: false
-    });
-
-    this.showStatus('Testing image display - Loading state set', 'info');
-
-    // After 2 seconds, simulate successful image load
-    setTimeout(() => {
-      this.nodeService.updateNodeConfig(testNode.id, {
-        imageLoading: false,
-        processImageUrl: 'https://via.placeholder.com/400x300/5e81ac/eceff4?text=Test+Process+Model',
-        imageLoadError: false,
-        generatedAt: new Date().toISOString(),
-        discoveryStats: {
-          nodes: 12,
-          edges: 18,
-          activities: 8,
-          cases: 156,
-          algorithm: 'Directly-Follows Graph',
-          executionTime: '2.3s'
-        }
-      });
-
-      console.log('Debug: Set success state with test image');
-      this.showStatus('Test image loaded successfully!', 'success');
-
-      // Force change detection
-      this.cdr.detectChanges();
-    }, 2000);
   }
 }
