@@ -76,8 +76,8 @@ export interface CAIROAnalysisResponse {
   providedIn: 'root'
 })
 export class ApiService {
-  private readonly baseUrl = 'http://localhost:5100/api';
-  // private readonly baseUrl = 'https://iot-pm-suite-backend.onrender.com/api';
+  // private readonly baseUrl = 'http://localhost:5100/api';
+  private readonly baseUrl = 'https://iot-pm-suite-backend.onrender.com/api';
   private connectionStatus = new BehaviorSubject<boolean>(false);
 
   public connectionStatus$ = this.connectionStatus.asObservable();
