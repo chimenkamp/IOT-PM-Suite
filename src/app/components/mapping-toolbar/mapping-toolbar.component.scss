@@ -31,6 +31,8 @@
 
   .section-content {
     padding: 0.75rem;
+    max-height: 200px;
+    overflow-y: auto;
   }
 }
 
@@ -691,3 +693,4 @@
     padding: 0.5rem;
   }
 }
+
